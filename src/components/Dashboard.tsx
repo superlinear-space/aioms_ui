@@ -9,6 +9,7 @@ import {
   TeamOutlined,
   BarChartOutlined
 } from '@ant-design/icons';
+import CheckRequestMatrix from './CheckRequestMatrix';
 import ClusterConfigEditor from './ClusterConfigEditor';
 import ClusterYmlEditor from './ClusterYmlEditor';
 import type { Sections, YamlSections } from '../types/clusterTypes';
@@ -102,8 +103,7 @@ const Dashboard: React.FC = () => {
       case 'menu3':
         return (
           <div style={{ padding: '24px' }}>
-            <h1>Menu 3 Content</h1>
-            <p>This is the content for Menu 3.</p>
+            <CheckRequestMatrix />
           </div>
         );
       case 'menu4':
