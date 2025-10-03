@@ -1,0 +1,171 @@
+# CheckRequest 配置示例文件
+# 格式：Prometheus风格的监控数据
+# 状态值：0=健康(绿), 1=失败(红), 2=未知(灰)
+#
+# 使用说明：
+# 1. 将此文件重命名为 check_requests.yaml
+# 2. 根据您的实际环境修改数据
+# 3. 每个domain可以有不同数量的instances
+# 4. 每个instance可以有不同数量的check_functions
+# 5. 矩阵会自动处理空缺的单元格
+
+check_requests:
+  # Domain 1: 有3个实例，每个实例有不同的检查函数
+  - domain: "web_servers"
+    instance: "web1"
+    check_function: "http_response_time"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "web_servers"
+    instance: "web1"
+    check_function: "cpu_usage"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "web_servers"
+    instance: "web1"
+    check_function: "memory_usage"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "web_servers"
+    instance: "web2"
+    check_function: "http_response_time"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "web_servers"
+    instance: "web2"
+    check_function: "disk_space"
+    value: 2
+    timestamp: 1703123456789
+  
+  - domain: "web_servers"
+    instance: "web3"
+    check_function: "http_response_time"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "web_servers"
+    instance: "web3"
+    check_function: "cpu_usage"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "web_servers"
+    instance: "web3"
+    check_function: "memory_usage"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "web_servers"
+    instance: "web3"
+    check_function: "disk_space"
+    value: 1
+    timestamp: 1703123456789
+  
+  # Domain 2: 只有2个实例，检查函数也不同
+  - domain: "database_servers"
+    instance: "db1"
+    check_function: "connection_pool"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "database_servers"
+    instance: "db1"
+    check_function: "query_performance"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "database_servers"
+    instance: "db1"
+    check_function: "disk_io"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "database_servers"
+    instance: "db2"
+    check_function: "connection_pool"
+    value: 2
+    timestamp: 1703123456789
+  
+  - domain: "database_servers"
+    instance: "db2"
+    check_function: "replication_lag"
+    value: 0
+    timestamp: 1703123456789
+  
+  # Domain 3: 只有1个实例，但有更多检查函数
+  - domain: "cache_servers"
+    instance: "cache1"
+    check_function: "hit_ratio"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "cache_servers"
+    instance: "cache1"
+    check_function: "memory_usage"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "cache_servers"
+    instance: "cache1"
+    check_function: "eviction_rate"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "cache_servers"
+    instance: "cache1"
+    check_function: "connection_count"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "cache_servers"
+    instance: "cache1"
+    check_function: "network_latency"
+    value: 2
+    timestamp: 1703123456789
+  
+  # Domain 4: 有4个实例，但检查函数数量不同
+  - domain: "load_balancers"
+    instance: "lb1"
+    check_function: "health_check"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "load_balancers"
+    instance: "lb2"
+    check_function: "health_check"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "load_balancers"
+    instance: "lb2"
+    check_function: "connection_count"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "load_balancers"
+    instance: "lb3"
+    check_function: "health_check"
+    value: 2
+    timestamp: 1703123456789
+  
+  - domain: "load_balancers"
+    instance: "lb3"
+    check_function: "response_time"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "load_balancers"
+    instance: "lb3"
+    check_function: "error_rate"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "load_balancers"
+    instance: "lb4"
+    check_function: "health_check"
+    value: 0
+    timestamp: 1703123456789

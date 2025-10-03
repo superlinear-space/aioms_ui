@@ -29,7 +29,7 @@ export const getApiUrl = (endpoint: string): string => {
 
 // Helper function to get auth headers
 export const getAuthHeaders = (token?: string) => {
-  const headers = { ...API_CONFIG.DEFAULT_HEADERS };
+  const headers: Record<string, string> = { ...API_CONFIG.DEFAULT_HEADERS };
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

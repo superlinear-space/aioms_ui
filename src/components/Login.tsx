@@ -13,7 +13,7 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const [form] = Form.useForm();
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { message } = App.useApp();
@@ -83,8 +83,8 @@ const Login: React.FC = () => {
                 }}
                 onError={(e) => {
                   // Fallback to text logo if image not found
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling!.style.display = 'block';
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  ((e.currentTarget as HTMLImageElement).nextElementSibling as HTMLElement)!.style.display = 'block';
                 }}
               />
               <div style={{ 
@@ -111,8 +111,8 @@ const Login: React.FC = () => {
                 }}
                 onError={(e) => {
                   // Fallback to icon if image not found
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling!.style.display = 'flex';
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  ((e.currentTarget as HTMLImageElement).nextElementSibling as HTMLElement)!.style.display = 'flex';
                 }}
               />
               <div style={{ 

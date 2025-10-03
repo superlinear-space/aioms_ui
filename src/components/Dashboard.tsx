@@ -9,6 +9,7 @@ import {
   TeamOutlined,
   BarChartOutlined
 } from '@ant-design/icons';
+import CheckRequestMatrix from './CheckRequestMatrix';
 
 const { Header, Content, Sider } = Layout;
 
@@ -2557,8 +2558,7 @@ dcgm_exporter [
       case 'menu3':
         return (
           <div style={{ padding: '24px' }}>
-            <h2>Menu 3 Content</h2>
-            <p>This is the content for Menu 3.</p>
+            <CheckRequestMatrix />
           </div>
         );
       case 'menu4':
