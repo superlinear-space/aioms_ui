@@ -1,0 +1,154 @@
+monitor_mode = alertmanager
+
+device_group "R6500" "su1-gpu[1-32],su2-gpu[33-64],su3-gpu[65-96],su4-gpu[97-128]" {
+  harward_model {
+    cpu_count_check 2
+    gpu_count_check 8
+    memory_stick_count_check 32
+    memory_speed_check 5600
+    nvme_count_check 4
+    nvme_disk_total_size_check 30400
+    ssd_count_check 2
+    ssd_disk_total_size_check 1780
+    infiniband_count_check 400G 8
+    infiniband_count_check 200G 2
+    ethernet_count_check 4
+    psu_count_check 8
+    fan_count_check 15
+    temp_sensor_count_check 62
+  }
+
+  performance_model {
+    cpu_util_check 0.95
+    gpu_ecc_check 0
+    gpu_temp_check 83
+    link_flapping_check 2 ###########
+    memory_usage_check 0.95
+    swap_usage_check 0.8
+    fs_usage_check 0.95
+    fs_free_volume_check nvme[1-4] 102400
+    pcie_downgrade_check pcie_devices_speed_model.txt ############ TODO: implement it
+  }
+
+  service_model {
+    fs_mount_check /gpfs
+    dmesg_check #################
+  }
+
+  active_test {
+    gpu_stress_test
+  }
+
+  sys_trap_monitor
+  
+  available_exporters {
+    node_exporter {
+      # A list of collectors turned on beyond default
+      textfile
+    }
+    dcgm_exporter [
+      # A list of metrics truned on beyond default
+    ]
+  }
+}
+
+device_group "CPU_SERVER" "cpu-compute-[1-14]" {
+  hardware_model {
+    cpu_count_check 2
+    memory_stick_count_check 16
+    memory_speed_check 3200
+    nvme_count_check 2
+    nvme_disk_total_size_check 1920
+    ethernet_count 2
+    psu_count_check 2
+    fan_count_check 6
+  }
+
+  performance_model {
+    cpu_util_check 0.90
+    swap_usage_check 0.8
+    memory_usage_check 0.90
+    fs_usage_check 0.90
+  }
+}
+
+device_group "MQM9790" "compute-su1-leaf[01-08],compute-su2-leaf[09-16],compute-su3-leaf[17-24],compute-su4-leaf[25-32],compute-spine[01-16]" {
+}
+
+device_group "RG-S6520-64CQ" "mgmt-agg-a,mgmt-agg-b" {
+  hardware_model {
+    ethernet_count_check 64 ######################
+  }
+
+  performance_model {
+    switch_cpu_util_check 0.7
+    switch_memory_usage_check 0.8
+    switch_temp_check 96
+  }
+
+  sys_trap_monitor
+}
+
+device_group "RG-S6510-48VS" "service-[1-4]-a,service-[1-4]-b,service-agg-a,service-agg-b" {
+  hardware_model {
+    ethernet_count_check 48
+  }
+
+  performance_model {
+    switch_cpu_util_check 0.7
+    switch_memory_usage_check 0.8
+    switch_temp_check 96
+  }
+}
+
+device_group "RG-S6000C-48GT" "mgmt-access-[1-4]" {
+  hardware_model {
+    ethernet_count_check 48
+  }
+
+  performance_model {
+    switch_cpu_util_check 0.7
+    switch_memory_usage_check 0.8
+    switch_temp_check 96
+  }
+}
+
+network "compute-network" "node_guid_mapping.csv" "links.csv" {
+  links_check
+  # nccl_test 380
+}
+
+network "storage-network" "storage_node_guid_mapping.csv" "storage_links.csv" {
+  links_check
+}
+
+tenant "tenant1" "su1-gpu[1-8]" {
+  ping_server_check 8.8.8.8,8.8.8.4
+}
+
+system {
+  all_exporters_status_check ############
+  alertmanager_status_check ############
+  prometheus_status_check ##############
+  opensm_status_check ############
+  database_status_check ############
+}
+
+# services:
+# - service: opensm
+
+# connections:
+# src -> dst: means connection can be started from src, but traffic can be both directional
+# Principle: local device can check above then specify checks in local device
+  # - R6500 -> GPFS
+  # - Tenant External Machines <-> Tenant R6500
+  # - Tenant Internal Machine (R6500, CPU) <-> Tenant Internal Machine (R6500, CPU)
+
+
+ ## ret: [exporter_list] + [requirements: fetch interval] [special ?]
+  --> rule set [rec + alert]
+
+### prom conf
+global conf
+rule files
+scrape file

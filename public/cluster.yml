@@ -1,0 +1,47 @@
+devices:
+- device_model: R6500
+  instances: su1-gpu[1-32],su2-gpu[33-64],su3-gpu[65-96],su4-gpu[97-128]
+- device_model: CPU_SERVER
+  instances: cpu-compute-[1-14]
+- device_model: XCM_SERVER
+  instances: xcm-appliance-[1-2]
+- device_model: GPFS_SERVER
+  instances: storage[01-07]
+- device_model: MQM9790
+  instances: compute-su1-leaf[01-08],compute-su2-leaf[09-16],compute-su3-leaf[17-24],compute-su4-leaf[25-32],compute-spine[01-16]
+- device_model: MQM8700
+  instances: storage-8700-leaf[01-12]
+- device_model: RG-S6520-64CQ
+  instances: mgmt-agg-a,mgmt-agg-b
+- device_model: RG-S6510-48VS
+  instances: service-[1-4]-a,service-[1-4]-b,service-agg-a,service-agg-b
+- device_model: RG-S6000C-48GT
+  instances: mgmt-access-[1-4]
+- device_model: NGFW
+  instances: dptech
+
+networks:
+- network: compute-network
+  nodes: 'node_guid_mapping.csv'
+  links: 'links.csv'
+- network: storage-network
+  nodes: 'storage_node_guid_mapping.csv'
+  links: 'storage_links.csv'
+
+# FIXME: move to a separated file later
+tenants:
+- tenant: tenant1
+  instances: su1-gpu[1-8]
+
+system:
+  epilogue:
+  - all_exporters_status_up_check
+  - count_healthy_instances_in_domain_groups GPU-Server:R6500|CPU-Server:CPU_SERVER|Control-Plane:control-plane|IB-Switches:MQM8700,MQM9790|Eth-Switches:RG-S6520-64CQ,RG-S6510-48VS,RG-S6000C-48GT
+  - count_healthy_gpus
+
+request_labels:
+- idc
+- project
+
+set_labels:
+  addr: Yiwu 2-6
