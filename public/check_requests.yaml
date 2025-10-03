@@ -1,0 +1,112 @@
+# CheckRequest 配置文件
+# 格式：Prometheus风格的监控数据
+# 状态值：0=健康(绿), 1=失败(红), 2=未知(灰)
+
+check_requests:
+  - domain: "R6500"
+    instance: "GPU0"
+    check_function: "GPU_COUNT_CHECK"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "R6500"
+    instance: "GPU0"
+    check_function: "GPU_UTIL_CHECK"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "R6500"
+    instance: "GPU0"
+    check_function: "GPU_TEMP_CHECK"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "R6500"
+    instance: "GPU1"
+    check_function: "GPU_COUNT_CHECK"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "R6500"
+    instance: "GPU1"
+    check_function: "GPU_UTIL_CHECK"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "R6500"
+    instance: "GPU2"
+    check_function: "GPU_COUNT_CHECK"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "R6500"
+    instance: "GPU2"
+    check_function: "GPU_TEMP_CHECK"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "CPU_Server"
+    instance: "CPU0"
+    check_function: "CPU_COUNT_CHECK"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "CPU_Server"
+    instance: "CPU0"
+    check_function: "CPU_UTIL_CHECK"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "CPU_Server"
+    instance: "CPU1"
+    check_function: "CPU_COUNT_CHECK"
+    value: 2
+    timestamp: 1703123456789
+  
+  - domain: "CPU_Server"
+    instance: "CPU1"
+    check_function: "CPU_TEMP_CHECK"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "CPU_Server"
+    instance: "CPU2"
+    check_function: "MOUNT_DISK_CHECK"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "domain3"
+    instance: "instance1"
+    check_function: "cf2"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "domain3"
+    instance: "instance1"
+    check_function: "cf6"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "domain3"
+    instance: "instance2"
+    check_function: "cf1"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "domain3"
+    instance: "instance2"
+    check_function: "cf3"
+    value: 0
+    timestamp: 1703123456789
+  
+  - domain: "domain3"
+    instance: "instance2"
+    check_function: "cf4"
+    value: 1
+    timestamp: 1703123456789
+  
+  - domain: "domain3"
+    instance: "instance2"
+    check_function: "cf7"
+    value: 0
+    timestamp: 1703123456789
