@@ -26,43 +26,6 @@ A modern React-based dashboard for managing cluster configurations with support 
    - Open your browser and navigate to `http://localhost:5173`
    - The dashboard will load with a professional UI for cluster management
 
-### Backend Setup (Django)
-
-1. **Navigate to Backend Directory**
-   ```bash
-   cd ../aioms_backend  # Adjust path as needed
-   ```
-
-2. **Create Virtual Environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Run Database Migrations**
-   ```bash
-   python manage.py migrate
-   ```
-
-5. **Create Superuser (Optional)**
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-6. **Start Django Server**
-   ```bash
-   python manage.py runserver
-   ```
-
-7. **Backend API Access**
-   - API will be available at `http://localhost:8000`
-   - Admin panel at `http://localhost:8000/admin`
-
 ## 📁 Project Structure
 
 ```
