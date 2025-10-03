@@ -7,7 +7,6 @@ A modern React-based dashboard for managing cluster configurations with support 
 ### Prerequisites
 
 - **Node.js** (v16 or higher)
-- **Python** (v3.8 or higher) - for Django backend
 - **npm** or **yarn** - for frontend dependencies
 
 ### Frontend Setup
@@ -25,6 +24,7 @@ A modern React-based dashboard for managing cluster configurations with support 
 3. **Access the Application**
    - Open your browser and navigate to `http://localhost:5173`
    - The dashboard will load with a professional UI for cluster management
+   - **Note**: This is currently a frontend-only application with mock data
 
 ## 📁 Project Structure
 
@@ -77,31 +77,29 @@ npm run dev          # Start development server
 npm run build        # Build for production
 npm run preview      # Preview production build
 npm run lint         # Run ESLint
-
-# Backend (Django)
-python manage.py runserver     # Start Django server
-python manage.py migrate       # Run database migrations
-python manage.py collectstatic # Collect static files
 ```
 
 ### Environment Variables
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the root directory (optional for future backend integration):
 
 ```env
-# Frontend
+# Frontend (for future backend integration)
 VITE_API_URL=http://localhost:8000/api
-
-# Backend (Django settings)
-SECRET_KEY=your-secret-key-here
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
-## 🌐 API Integration
+## 🌐 Current Status
 
-The frontend is designed to work with a Django REST API backend:
+This is currently a **frontend-only application** with the following characteristics:
 
+- **Mock Data** - Uses sample configuration data for demonstration
+- **File-based Configuration** - Reads from `public/cluster_all.txt` and `public/cluster.yml`
+- **No Backend Required** - Fully functional standalone application
+- **Future Ready** - Designed to integrate with a Django REST API backend when available
+
+### Future Backend Integration
+
+When a backend server is added, the application will support:
 - **Authentication** - JWT-based authentication
 - **Configuration Management** - CRUD operations for cluster configs
 - **File Operations** - Upload/download configuration files
@@ -133,8 +131,9 @@ npm run build
 # Deploy the 'dist' folder to your web server
 ```
 
-### Backend Deployment
+### Backend Deployment (Future)
 ```bash
+# When backend is added:
 python manage.py collectstatic
 python manage.py migrate
 # Deploy using gunicorn, uWSGI, or similar WSGI server
