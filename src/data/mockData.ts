@@ -11,7 +11,7 @@ export interface CheckRequest {
   export const STATUS_MAP = {
     0: { label: 'Successful', color: '#52c41a', bgColor: '#f6ffed' },
     1: { label: 'Failed', color: '#ff4d4f', bgColor: '#fff2f0' },
-    2: { label: 'Unknown', color: '#d9d9d9', bgColor: '#f5f5f5' }
+    2: { label: 'Unknown', color: '#faad14', bgColor: '#fffbe6' }
   } as const;
   
   // 按domain分组的数据结构

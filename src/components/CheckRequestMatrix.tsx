@@ -386,18 +386,32 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
             </div>
           </Col>
           <Col span={6}>
-            <div style={{
-              background: 'linear-gradient(135deg, #6b7280, #4b5563)',
-              borderRadius: '12px',
-              padding: '20px',
-              textAlign: 'center',
-              color: 'white',
-              boxShadow: '0 4px 6px -1px rgba(107, 114, 128, 0.3)'
-            }}>
-              <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #fadb14, #faad14)', // 浅黄到亮黄渐变
+                borderRadius: '12px',
+                padding: '20px',
+                textAlign: 'center',
+                color: 'white', // 深棕色文字，避免黄底上不清晰
+                boxShadow: '0 4px 6px -1px rgba(250, 173, 20, 0.3)'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '32px',
+                  fontWeight: '700',
+                  marginBottom: '8px'
+                }}
+              >
                 {statistics.unknown}
               </div>
-              <div style={{ fontSize: '14px', fontWeight: '600', opacity: 0.9 }}>
+              <div
+                style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  opacity: 0.9
+                }}
+              >
                 Unknown
               </div>
             </div>
