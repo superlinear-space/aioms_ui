@@ -80,29 +80,28 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
     return (
       <div style={{ 
         overflow: 'auto', 
-        borderRadius: '8px',
-        maxHeight: '600px', // 限制垂直高度
-        maxWidth: '100%',   // 限制水平宽度
+        borderRadius: '6px',
+        maxHeight: '500px', // 减少高度
+        maxWidth: '100%',
         border: '1px solid #e2e8f0',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
         position: 'relative',
-        // 自定义滚动条样式
         scrollbarWidth: 'thin',
         scrollbarColor: '#cbd5e1 #f1f5f9'
       }}>
         <style>
           {`
             .matrix-scroll::-webkit-scrollbar {
-              width: 8px;
-              height: 8px;
+              width: 6px;
+              height: 6px;
             }
             .matrix-scroll::-webkit-scrollbar-track {
               background: #f1f5f9;
-              border-radius: 4px;
+              border-radius: 3px;
             }
             .matrix-scroll::-webkit-scrollbar-thumb {
               background: #cbd5e1;
-              border-radius: 4px;
+              border-radius: 3px;
             }
             .matrix-scroll::-webkit-scrollbar-thumb:hover {
               background: #94a3b8;
@@ -111,157 +110,155 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
         </style>
         <div className="matrix-scroll" style={{ 
           overflow: 'auto',
-          maxHeight: '600px',
+          maxHeight: '500px',
           maxWidth: '100%'
         }}>
-          <table style={{ 
-            width: 'max-content', // 让表格根据内容自适应宽度
-            minWidth: '100%',     // 确保至少占满容器宽度
-            borderCollapse: 'collapse', 
-            fontSize: '14px',
-            background: 'white',
-            borderRadius: '8px',
-            overflow: 'hidden'
+          {/* 使用CSS Grid替代表格 */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `200px repeat(${displayCheckFunctions.length}, 1fr)`,
+            gap: '1px',
+            backgroundColor: '#e5e7eb',
+            minWidth: 'max-content',
+            fontSize: '12px'
           }}>
-          <thead>
-            <tr>
-              <th style={{ 
-                padding: '16px 12px', 
-                border: 'none', 
-                backgroundColor: '#f8fafc', 
-                position: 'sticky', 
-                left: 0, 
+            {/* 头部行 */}
+            <div style={{
+              padding: '8px 6px',
+              backgroundColor: '#f8fafc',
+              position: 'sticky',
+              left: 0,
+              top: 0,
+              zIndex: 3,
+              fontWeight: '600',
+              color: '#374151',
+              textAlign: 'left',
+              borderBottom: '2px solid #e2e8f0',
+              boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
+              fontSize: '11px'
+            }}>
+              Instance
+            </div>
+            {displayCheckFunctions.map(cf => (
+              <div key={cf} style={{
+                padding: '8px 4px',
+                backgroundColor: '#f8fafc',
+                position: 'sticky',
                 top: 0,
-                zIndex: 2, 
-                minWidth: '180px',
-                fontSize: '14px',
+                zIndex: 2,
                 fontWeight: '600',
                 color: '#374151',
-                textAlign: 'left',
+                textAlign: 'center',
                 borderBottom: '2px solid #e2e8f0',
-                boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                fontSize: '10px',
+                wordBreak: 'break-word',
+                lineHeight: '1.2'
               }}>
-                Instance
-              </th>
-              {displayCheckFunctions.map(cf => (
-                <th key={cf} style={{ 
-                  padding: '16px 12px', 
-                  border: 'none', 
-                  backgroundColor: '#f8fafc', 
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1,
-                  minWidth: '160px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  textAlign: 'center',
-                  borderBottom: '2px solid #e2e8f0',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                }}>
-                  {cf}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
+                {cf}
+              </div>
+            ))}
+
+            {/* 数据行 */}
             {displayInstances.map((instance, index) => {
               const instanceData = selectedDomainData?.instances[instance] || {};
               return (
-                <tr key={instance} style={{
-                  backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb',
-                  transition: 'background-color 0.2s ease'
-                }}>
-                  <td style={{ 
-                    padding: '12px', 
-                    border: 'none', 
-                    backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb', 
-                    position: 'sticky', 
-                    left: 0, 
+                <React.Fragment key={instance}>
+                  {/* Instance名称列 */}
+                  <div style={{
+                    padding: '6px 8px',
+                    backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb',
+                    position: 'sticky',
+                    left: 0,
                     zIndex: 1,
-                    borderBottom: '1px solid #e5e7eb'
+                    borderBottom: '1px solid #e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '11px'
                   }}>
                     <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: '#3b82f6',
+                      flexShrink: 0
+                    }} />
+                    <span style={{ 
+                      fontWeight: '600', 
+                      color: '#1e293b',
+                      fontSize: '11px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}>
-                      <div style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        backgroundColor: '#3b82f6'
-                      }} />
-                      <span style={{ 
-                        fontWeight: '600', 
-                        color: '#1e293b',
-                        fontSize: '14px'
-                      }}>
-                        {instance}
-                      </span>
-                    </div>
-                  </td>
+                      {instance}
+                    </span>
+                  </div>
+
+                  {/* 状态列 */}
                   {displayCheckFunctions.map(cf => {
                     const checkRequest = (instanceData as any)[cf];
                     if (!checkRequest) {
                       return (
-                        <td key={`${instance}-${cf}`} style={{ 
-                          padding: '12px', 
-                          border: 'none', 
-                          textAlign: 'center', 
-                          color: '#9ca3af', 
-                          fontSize: '12px',
-                          borderBottom: '1px solid #e5e7eb'
+                        <div key={`${instance}-${cf}`} style={{
+                          padding: '4px',
+                          backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb',
+                          textAlign: 'center',
+                          borderBottom: '1px solid #e5e7eb',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
                         }}>
                           <div style={{
-                            width: '24px',
-                            height: '24px',
-                            margin: '0 auto',
-                            borderRadius: '6px',
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '3px',
                             backgroundColor: '#f3f4f6',
-                            border: '2px solid #e5e7eb',
+                            border: '1px solid #e5e7eb',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '10px',
+                            fontSize: '8px',
                             fontWeight: '600',
                             color: '#9ca3af'
                           }}>
                             -
                           </div>
-                        </td>
+                        </div>
                       );
                     }
 
                     const status = STATUS_MAP[checkRequest.value as keyof typeof STATUS_MAP];
                     return (
-                      <td key={`${instance}-${cf}`} style={{ 
-                        padding: '12px', 
-                        border: 'none', 
-                        verticalAlign: 'middle',
+                      <div key={`${instance}-${cf}`} style={{
+                        padding: '4px',
+                        backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb',
                         textAlign: 'center',
-                        borderBottom: '1px solid #e5e7eb'
+                        borderBottom: '1px solid #e5e7eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}>
                         <Tooltip title={`${cf}: ${status.label}`} placement="top">
                           <div
                             style={{
-                              width: '24px',
-                              height: '24px',
-                              margin: '0 auto',
-                              borderRadius: '6px',
+                              width: '16px',
+                              height: '16px',
+                              borderRadius: '3px',
                               backgroundColor: status.bgColor,
-                              border: `2px solid ${status.color}`,
+                              border: `1px solid ${status.color}`,
                               cursor: 'pointer',
                               transition: 'transform 0.2s ease',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '10px',
+                              fontSize: '8px',
                               fontWeight: '600',
                               color: status.color
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'scale(1.1)';
+                              e.currentTarget.style.transform = 'scale(1.2)';
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.transform = 'scale(1)';
@@ -270,14 +267,13 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                             {checkRequest.value === 0 ? '✓' : checkRequest.value === 1 ? '✗' : checkRequest.value === 2 ? '?' : ''}
                           </div>
                         </Tooltip>
-                      </td>
+                      </div>
                     );
                   })}
-                </tr>
+                </React.Fragment>
               );
             })}
-          </tbody>
-          </table>
+          </div>
         </div>
       </div>
     );
