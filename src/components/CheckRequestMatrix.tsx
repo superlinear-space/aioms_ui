@@ -78,16 +78,51 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
     );
 
     return (
-      <div style={{ overflow: 'auto', borderRadius: '8px' }}>
-        <table style={{ 
-          width: '100%', 
-          borderCollapse: 'collapse', 
-          fontSize: '14px',
-          background: 'white',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+      <div style={{ 
+        overflow: 'auto', 
+        borderRadius: '8px',
+        maxHeight: '600px', // 限制垂直高度
+        maxWidth: '100%',   // 限制水平宽度
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        position: 'relative',
+        // 自定义滚动条样式
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#cbd5e1 #f1f5f9'
+      }}>
+        <style>
+          {`
+            .matrix-scroll::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+            .matrix-scroll::-webkit-scrollbar-track {
+              background: #f1f5f9;
+              border-radius: 4px;
+            }
+            .matrix-scroll::-webkit-scrollbar-thumb {
+              background: #cbd5e1;
+              border-radius: 4px;
+            }
+            .matrix-scroll::-webkit-scrollbar-thumb:hover {
+              background: #94a3b8;
+            }
+          `}
+        </style>
+        <div className="matrix-scroll" style={{ 
+          overflow: 'auto',
+          maxHeight: '600px',
+          maxWidth: '100%'
         }}>
+          <table style={{ 
+            width: 'max-content', // 让表格根据内容自适应宽度
+            minWidth: '100%',     // 确保至少占满容器宽度
+            borderCollapse: 'collapse', 
+            fontSize: '14px',
+            background: 'white',
+            borderRadius: '8px',
+            overflow: 'hidden'
+          }}>
           <thead>
             <tr>
               <th style={{ 
@@ -96,13 +131,15 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                 backgroundColor: '#f8fafc', 
                 position: 'sticky', 
                 left: 0, 
-                zIndex: 1, 
+                top: 0,
+                zIndex: 2, 
                 minWidth: '180px',
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151',
                 textAlign: 'left',
-                borderBottom: '2px solid #e2e8f0'
+                borderBottom: '2px solid #e2e8f0',
+                boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)'
               }}>
                 Instance
               </th>
@@ -111,12 +148,16 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                   padding: '16px 12px', 
                   border: 'none', 
                   backgroundColor: '#f8fafc', 
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 1,
                   minWidth: '160px',
                   fontSize: '14px',
                   fontWeight: '600',
                   color: '#374151',
                   textAlign: 'center',
-                  borderBottom: '2px solid #e2e8f0'
+                  borderBottom: '2px solid #e2e8f0',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
                 }}>
                   {cf}
                 </th>
@@ -236,7 +277,8 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
               );
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     );
   };
@@ -698,7 +740,10 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
           <div style={{
             padding: '20px',
             borderBottom: '1px solid #e2e8f0',
-            backgroundColor: '#f8fafc'
+            backgroundColor: '#f8fafc',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}>
             <h4 style={{ 
               margin: 0, 
@@ -708,6 +753,16 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
             }}>
               📋 Matrix View
             </h4>
+            <div style={{
+              fontSize: '12px',
+              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span>💡</span>
+              <span>Scroll horizontally and vertically to view all data</span>
+            </div>
           </div>
           <div style={{ padding: '20px' }}>
             <Spin spinning={loading}>
