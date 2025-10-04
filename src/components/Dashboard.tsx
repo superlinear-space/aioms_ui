@@ -59,7 +59,7 @@ const Dashboard: React.FC = () => {
     {
       key: 'menu1',
       icon: <DashboardOutlined />,
-      label: 'Menu 1',
+      label: 'Model Config',
     },
     {
       key: 'menu2',
@@ -82,6 +82,15 @@ const Dashboard: React.FC = () => {
     switch (selectedMenu) {
       case 'menu1':
         return (
+          <ClusterYmlEditor
+            yamlSections={yamlSections}
+            setYamlSections={setYamlSections}
+            yamlActiveTab={yamlActiveTab}
+            setYamlActiveTab={setYamlActiveTab}
+          />
+        );
+      case 'menu2':
+        return (
           <ClusterConfigEditor
             sections={sections}
             setSections={setSections}
@@ -89,15 +98,6 @@ const Dashboard: React.FC = () => {
             setFileName={setFileName}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-          />
-        );
-      case 'menu2':
-        return (
-          <ClusterYmlEditor
-            yamlSections={yamlSections}
-            setYamlSections={setYamlSections}
-            yamlActiveTab={yamlActiveTab}
-            setYamlActiveTab={setYamlActiveTab}
           />
         );
       case 'menu3':
