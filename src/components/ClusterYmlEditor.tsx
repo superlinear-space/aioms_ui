@@ -28,6 +28,132 @@ interface ClusterYmlEditorProps {
   setYamlActiveTab: React.Dispatch<React.SetStateAction<string>>;
 }
 
+// Generic YAML handlers factory
+const createYamlHandlers = <T extends Record<string, any>>(
+  sectionKey: keyof YamlSections,
+  defaultItem: T,
+  setYamlSections: React.Dispatch<React.SetStateAction<YamlSections>>,
+  message: any,
+  itemType: string
+) => ({
+  handleChange: (index: number, field: string, value: string) => {
+    setYamlSections(prev => ({
+      ...prev,
+      [sectionKey]: (prev[sectionKey] as T[]).map((item, i) => 
+        i === index ? { ...item, [field]: value } : item
+      )
+    }));
+  },
+  handleAdd: () => {
+    setYamlSections(prev => ({
+      ...prev,
+      [sectionKey]: [...(prev[sectionKey] as T[]), defaultItem]
+    }));
+    message.success(`New ${itemType} added!`);
+  },
+  handleDelete: (index: number) => {
+    setYamlSections(prev => ({
+      ...prev,
+      [sectionKey]: (prev[sectionKey] as T[]).filter((_, i) => i !== index)
+    }));
+    message.success(`${itemType} deleted!`);
+  }
+});
+
+// Specialized handlers for system epilogue (different structure)
+const createEpilogueHandlers = (
+  setYamlSections: React.Dispatch<React.SetStateAction<YamlSections>>,
+  message: any
+) => ({
+  handleChange: (index: number, value: string) => {
+    setYamlSections(prev => ({
+      ...prev,
+      system: {
+        ...prev.system,
+        epilogue: prev.system.epilogue.map((item, i) => i === index ? value : item)
+      }
+    }));
+  },
+  handleAdd: () => {
+    setYamlSections(prev => ({
+      ...prev,
+      system: {
+        ...prev.system,
+        epilogue: [...prev.system.epilogue, '']
+      }
+    }));
+    message.success('New epilogue command added!');
+  },
+  handleDelete: (index: number) => {
+    setYamlSections(prev => ({
+      ...prev,
+      system: {
+        ...prev.system,
+        epilogue: prev.system.epilogue.filter((_, i) => i !== index)
+      }
+    }));
+    message.success('Epilogue command deleted!');
+  }
+});
+
+// Specialized handlers for request labels (array of strings)
+const createRequestLabelHandlers = (
+  setYamlSections: React.Dispatch<React.SetStateAction<YamlSections>>,
+  message: any
+) => ({
+  handleChange: (index: number, value: string) => {
+    setYamlSections(prev => ({
+      ...prev,
+      request_labels: prev.request_labels.map((item, i) => i === index ? value : item)
+    }));
+  },
+  handleAdd: () => {
+    setYamlSections(prev => ({
+      ...prev,
+      request_labels: [...prev.request_labels, '']
+    }));
+    message.success('New request label added!');
+  },
+  handleDelete: (index: number) => {
+    setYamlSections(prev => ({
+      ...prev,
+      request_labels: prev.request_labels.filter((_, i) => i !== index)
+    }));
+    message.success('Request label deleted!');
+  }
+});
+
+// Specialized handlers for set labels (object)
+const createSetLabelHandlers = (
+  setYamlSections: React.Dispatch<React.SetStateAction<YamlSections>>,
+  message: any
+) => ({
+  handleChange: (key: string, value: string) => {
+    setYamlSections(prev => ({
+      ...prev,
+      set_labels: { ...prev.set_labels, [key]: value }
+    }));
+  },
+  handleAdd: () => {
+    const key = prompt('Enter label key:');
+    if (key) {
+      setYamlSections(prev => ({
+        ...prev,
+        set_labels: { ...prev.set_labels, [key]: '' }
+      }));
+      message.success('New set label added!');
+    }
+  },
+  handleDelete: (key: string) => {
+    setYamlSections(prev => {
+      const newSetLabels = { ...prev.set_labels };
+      delete newSetLabels[key];
+      return { ...prev, set_labels: newSetLabels };
+    });
+    message.success('Set label deleted!');
+  }
+});
+
 const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
   yamlSections,
   setYamlSections,
@@ -731,163 +857,34 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
     }
   };
 
-  // YAML Section Handlers
-  const handleYamlDeviceChange = (index: number, field: string, value: string) => {
-    setYamlSections(prev => ({
-      ...prev,
-      devices: prev.devices.map((device, i) => 
-        i === index ? { ...device, [field]: value } : device
-      )
-    }));
-  };
+  // Create handlers using the factory functions
+  const deviceHandlers = createYamlHandlers(
+    'devices', 
+    { device_model: '', instances: '' }, 
+    setYamlSections, 
+    message, 
+    'device'
+  );
+  
+  const networkHandlers = createYamlHandlers(
+    'networks', 
+    { network: '', nodes: '', links: '' }, 
+    setYamlSections, 
+    message, 
+    'network'
+  );
+  
+  const tenantHandlers = createYamlHandlers(
+    'tenants', 
+    { tenant: '', instances: '' }, 
+    setYamlSections, 
+    message, 
+    'tenant'
+  );
 
-  const handleAddYamlDevice = () => {
-    setYamlSections(prev => ({
-      ...prev,
-      devices: [...prev.devices, { device_model: '', instances: '' }]
-    }));
-    message.success('New device added!');
-  };
-
-  const handleDeleteYamlDevice = (index: number) => {
-    setYamlSections(prev => ({
-      ...prev,
-      devices: prev.devices.filter((_, i) => i !== index)
-    }));
-    message.success('Device deleted!');
-  };
-
-  const handleYamlNetworkChange = (index: number, field: string, value: string) => {
-    setYamlSections(prev => ({
-      ...prev,
-      networks: prev.networks.map((network, i) => 
-        i === index ? { ...network, [field]: value } : network
-      )
-    }));
-  };
-
-  const handleAddYamlNetwork = () => {
-    setYamlSections(prev => ({
-      ...prev,
-      networks: [...prev.networks, { network: '', nodes: '', links: '' }]
-    }));
-    message.success('New network added!');
-  };
-
-  const handleDeleteYamlNetwork = (index: number) => {
-    setYamlSections(prev => ({
-      ...prev,
-      networks: prev.networks.filter((_, i) => i !== index)
-    }));
-    message.success('Network deleted!');
-  };
-
-  const handleYamlTenantChange = (index: number, field: string, value: string) => {
-    setYamlSections(prev => ({
-      ...prev,
-      tenants: prev.tenants.map((tenant, i) => 
-        i === index ? { ...tenant, [field]: value } : tenant
-      )
-    }));
-  };
-
-  const handleAddYamlTenant = () => {
-    setYamlSections(prev => ({
-      ...prev,
-      tenants: [...prev.tenants, { tenant: '', instances: '' }]
-    }));
-    message.success('New tenant added!');
-  };
-
-  const handleDeleteYamlTenant = (index: number) => {
-    setYamlSections(prev => ({
-      ...prev,
-      tenants: prev.tenants.filter((_, i) => i !== index)
-    }));
-    message.success('Tenant deleted!');
-  };
-
-  const handleYamlEpilogueChange = (index: number, value: string) => {
-    setYamlSections(prev => ({
-      ...prev,
-      system: {
-        ...prev.system,
-        epilogue: prev.system.epilogue.map((item, i) => i === index ? value : item)
-      }
-    }));
-  };
-
-  const handleAddYamlEpilogue = () => {
-    setYamlSections(prev => ({
-      ...prev,
-      system: {
-        ...prev.system,
-        epilogue: [...prev.system.epilogue, '']
-      }
-    }));
-    message.success('New epilogue command added!');
-  };
-
-  const handleDeleteYamlEpilogue = (index: number) => {
-    setYamlSections(prev => ({
-      ...prev,
-      system: {
-        ...prev.system,
-        epilogue: prev.system.epilogue.filter((_, i) => i !== index)
-      }
-    }));
-    message.success('Epilogue command deleted!');
-  };
-
-  const handleYamlRequestLabelChange = (index: number, value: string) => {
-    setYamlSections(prev => ({
-      ...prev,
-      request_labels: prev.request_labels.map((item, i) => i === index ? value : item)
-    }));
-  };
-
-  const handleAddYamlRequestLabel = () => {
-    setYamlSections(prev => ({
-      ...prev,
-      request_labels: [...prev.request_labels, '']
-    }));
-    message.success('New request label added!');
-  };
-
-  const handleDeleteYamlRequestLabel = (index: number) => {
-    setYamlSections(prev => ({
-      ...prev,
-      request_labels: prev.request_labels.filter((_, i) => i !== index)
-    }));
-    message.success('Request label deleted!');
-  };
-
-  const handleYamlSetLabelChange = (key: string, value: string) => {
-    setYamlSections(prev => ({
-      ...prev,
-      set_labels: { ...prev.set_labels, [key]: value }
-    }));
-  };
-
-  const handleAddYamlSetLabel = () => {
-    const key = prompt('Enter label key:');
-    if (key) {
-      setYamlSections(prev => ({
-        ...prev,
-        set_labels: { ...prev.set_labels, [key]: '' }
-      }));
-      message.success('New set label added!');
-    }
-  };
-
-  const handleDeleteYamlSetLabel = (key: string) => {
-    setYamlSections(prev => {
-      const newSetLabels = { ...prev.set_labels };
-      delete newSetLabels[key];
-      return { ...prev, set_labels: newSetLabels };
-    });
-    message.success('Set label deleted!');
-  };
+  const epilogueHandlers = createEpilogueHandlers(setYamlSections, message);
+  const requestLabelHandlers = createRequestLabelHandlers(setYamlSections, message);
+  const setLabelHandlers = createSetLabelHandlers(setYamlSections, message);
 
   const handleDirectorySelect = () => {
     setShowDirectoryModal(true);
@@ -1058,7 +1055,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                     <h3 style={{ margin: 0, color: '#1a365d' }}>Device Management</h3>
                     <Button 
                       type="primary" 
-                      onClick={handleAddYamlDevice}
+                      onClick={deviceHandlers.handleAdd}
                       style={{ 
                         height: '40px',
                         borderRadius: '10px',
@@ -1130,7 +1127,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                             size="small"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteYamlDevice(index);
+                              deviceHandlers.handleDelete(index);
                             }}
                             style={{ 
                               height: '32px',
@@ -1161,7 +1158,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                               </label>
                               <Input
                                 value={device.device_model}
-                                onChange={(e) => handleYamlDeviceChange(index, 'device_model', e.target.value)}
+                                onChange={(e) => deviceHandlers.handleChange(index, 'device_model', e.target.value)}
                                 placeholder="e.g., R6500"
                                 style={{ 
                                   height: '40px',
@@ -1182,7 +1179,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                               </label>
                               <Input
                                 value={device.instances}
-                                onChange={(e) => handleYamlDeviceChange(index, 'instances', e.target.value)}
+                                onChange={(e) => deviceHandlers.handleChange(index, 'instances', e.target.value)}
                                 placeholder="e.g., su1-gpu[1-32]"
                                 style={{ 
                                   height: '40px',
@@ -1234,7 +1231,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
         <h3 style={{ margin: 0, color: '#1a365d' }}>Network Management</h3>
         <Button 
           type="primary" 
-          onClick={handleAddYamlNetwork}
+          onClick={networkHandlers.handleAdd}
           style={{ 
             height: '40px',
             borderRadius: '10px',
@@ -1300,7 +1297,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                 size="small"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDeleteYamlNetwork(index);
+                  networkHandlers.handleDelete(index);
                 }}
                 style={{ 
                   height: '32px',
@@ -1331,7 +1328,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                   </label>
                   <Input
                     value={network.network}
-                    onChange={(e) => handleYamlNetworkChange(index, 'network', e.target.value)}
+                    onChange={(e) => networkHandlers.handleChange(index, 'network', e.target.value)}
                     placeholder="e.g., compute-network"
                     style={{ 
                       height: '40px',
@@ -1352,7 +1349,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                   </label>
                   <Input
                     value={network.nodes}
-                    onChange={(e) => handleYamlNetworkChange(index, 'nodes', e.target.value)}
+                    onChange={(e) => networkHandlers.handleChange(index, 'nodes', e.target.value)}
                     placeholder="e.g., node_guid_mapping.csv"
                     style={{ 
                       height: '40px',
@@ -1373,7 +1370,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                   </label>
                   <Input
                     value={network.links}
-                    onChange={(e) => handleYamlNetworkChange(index, 'links', e.target.value)}
+                    onChange={(e) => networkHandlers.handleChange(index, 'links', e.target.value)}
                     placeholder="e.g., links.csv"
                     style={{ 
                       height: '40px',
@@ -1444,7 +1441,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                     <h3 style={{ margin: 0, color: '#1a365d' }}>Tenant Management</h3>
                     <Button 
                       type="primary" 
-                      onClick={handleAddYamlTenant}
+                      onClick={tenantHandlers.handleAdd}
                       style={{ 
                         height: '40px',
                         borderRadius: '10px',
@@ -1516,7 +1513,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                             size="small"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteYamlTenant(index);
+                              tenantHandlers.handleDelete(index);
                             }}
                             style={{ 
                               height: '32px',
@@ -1547,7 +1544,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                               </label>
                               <Input
                                 value={tenant.tenant}
-                                onChange={(e) => handleYamlTenantChange(index, 'tenant', e.target.value)}
+                                onChange={(e) => tenantHandlers.handleChange(index, 'tenant', e.target.value)}
                                 placeholder="e.g., tenant1"
                                 style={{ 
                                   height: '40px',
@@ -1568,7 +1565,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                               </label>
                               <Input
                                 value={tenant.instances}
-                                onChange={(e) => handleYamlTenantChange(index, 'instances', e.target.value)}
+                                onChange={(e) => tenantHandlers.handleChange(index, 'instances', e.target.value)}
                                 placeholder="e.g., su1-gpu[1-8]"
                                 style={{ 
                                   height: '40px',
@@ -1639,7 +1636,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                     <h3 style={{ margin: 0, color: '#1a365d' }}>System Configuration</h3>
                     <Button 
                       type="primary" 
-                      onClick={handleAddYamlEpilogue}
+                      onClick={epilogueHandlers.handleAdd}
                       style={{ 
                         height: '40px',
                         borderRadius: '10px',
@@ -1658,99 +1655,31 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                     </Button>
                   </div>
                   
-                  <div style={{ 
-                    border: '2px solid #e2e8f0', 
-                    borderRadius: '12px', 
-                    padding: '20px',
-                    backgroundColor: '#f8fafc'
-                  }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '12px',
-                      marginBottom: '16px'
-                    }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {yamlSections.system.epilogue.map((command, index) => (
+                      <div key={index} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '12px',
+                        padding: '12px',
+                        background: 'white',
                         borderRadius: '8px',
-                        background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '14px',
-                        fontWeight: '600'
+                        border: '1px solid #d1d5db'
                       }}>
-                        ⚙️
+                        <Input
+                          value={command}
+                          onChange={(e) => epilogueHandlers.handleChange(index, e.target.value)}
+                          placeholder="Enter epilogue command..."
+                          style={{ flex: 1 }}
+                        />
+                        <Button
+                          danger
+                          onClick={() => epilogueHandlers.handleDelete(index)}
+                        >
+                          🗑️
+                        </Button>
                       </div>
-                      <h4 style={{ margin: 0, color: '#2d3748', fontSize: '16px' }}>
-                        Epilogue Commands
-                      </h4>
-                    </div>
-                    
-                    {yamlSections.system.epilogue.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {yamlSections.system.epilogue.map((command, index) => (
-                          <div key={index} style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '12px',
-                            padding: '12px',
-                            background: 'white',
-                            borderRadius: '8px',
-                            border: '1px solid #d1d5db'
-                          }}>
-                            <Input
-                              value={command}
-                              onChange={(e) => handleYamlEpilogueChange(index, e.target.value)}
-                              placeholder="Enter epilogue command..."
-                              style={{ 
-                                flex: 1,
-                                height: '36px',
-                                borderRadius: '6px',
-                                border: '1px solid #d1d5db'
-                              }}
-                            />
-                            <Button
-                              size="small"
-                              danger
-                              onClick={() => handleDeleteYamlEpilogue(index)}
-                              style={{
-                                height: '32px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                flexShrink: 0
-                              }}
-                            >
-                              🗑️
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ 
-                        textAlign: 'center', 
-                        color: '#64748b', 
-                        fontStyle: 'italic',
-                        padding: '40px 20px',
-                        backgroundColor: 'white',
-                        borderRadius: '8px',
-                        border: '1px dashed #d1d5db'
-                      }}>
-                        <div style={{ fontSize: '32px', marginBottom: '12px' }}>📝</div>
-                        <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
-                          No epilogue commands configured
-                        </div>
-                        <div style={{ fontSize: '12px' }}>
-                          Click "Add Epilogue Command" to add your first command
-                        </div>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               )
@@ -1781,14 +1710,14 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                     <div style={{ display: 'flex', gap: '12px' }}>
                       <Button 
                         type="primary" 
-                        onClick={handleAddYamlRequestLabel}
+                        onClick={requestLabelHandlers.handleAdd}
                         style={{ backgroundColor: '#13c2c2', borderColor: '#13c2c2' }}
                       >
                         ➕ Add Request Label
                       </Button>
                       <Button 
                         type="primary" 
-                        onClick={handleAddYamlSetLabel}
+                        onClick={setLabelHandlers.handleAdd}
                         style={{ backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' }}
                       >
                         ➕ Add Set Label
@@ -1817,19 +1746,13 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                           }}>
                             <Input
                               value={label}
-                              onChange={(e) => handleYamlRequestLabelChange(index, e.target.value)}
+                              onChange={(e) => requestLabelHandlers.handleChange(index, e.target.value)}
                               placeholder="Enter request label..."
-                              style={{ 
-                                flex: 1,
-                                height: '36px',
-                                borderRadius: '6px',
-                                border: '1px solid #d1d5db'
-                              }}
+                              style={{ flex: 1 }}
                             />
                             <Button
-                              size="small"
                               danger
-                              onClick={() => handleDeleteYamlRequestLabel(index)}
+                              onClick={() => requestLabelHandlers.handleDelete(index)}
                             >
                               🗑️
                             </Button>
@@ -1869,30 +1792,18 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                             <Input
                               value={key}
                               readOnly
-                              style={{ 
-                                width: '120px',
-                                height: '36px',
-                                borderRadius: '6px',
-                                border: '1px solid #d1d5db',
-                                background: '#f9fafb'
-                              }}
+                              style={{ width: '120px', background: '#f9fafb' }}
                             />
                             <span style={{ color: '#6b7280' }}>:</span>
                             <Input
                               value={value}
-                              onChange={(e) => handleYamlSetLabelChange(key, e.target.value)}
+                              onChange={(e) => setLabelHandlers.handleChange(key, e.target.value)}
                               placeholder="Enter value..."
-                              style={{ 
-                                flex: 1,
-                                height: '36px',
-                                borderRadius: '6px',
-                                border: '1px solid #d1d5db'
-                              }}
+                              style={{ flex: 1 }}
                             />
                             <Button
-                              size="small"
                               danger
-                              onClick={() => handleDeleteYamlSetLabel(key)}
+                              onClick={() => setLabelHandlers.handleDelete(key)}
                             >
                               🗑️
                             </Button>
