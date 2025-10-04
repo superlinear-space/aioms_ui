@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import * as yaml from 'js-yaml';
 
 export interface ClusterDevice {
@@ -226,3 +227,63 @@ export class PrometheusService {
     }
   }
 }
+=======
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:15000/api';
+
+export interface GeneratePromRulesRequest {
+  cluster_dir: string;
+  output_dir: string;
+}
+
+export interface GeneratePromRulesResponse {
+  success: boolean;
+  message: string;
+  output_dir: string;
+  cluster_dir: string;
+  files_generated: number;
+  prometheus_files: string[];
+  command_output: string;
+  command: string;
+}
+
+export interface SuperAlarmStatus {
+  available: boolean;
+  version?: string;
+  path?: string;
+  error?: string;
+}
+
+export const prometheusService = {
+  async generatePromRules(request: GeneratePromRulesRequest): Promise<GeneratePromRulesResponse> {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/generate_prom_rules`, request);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to generate Prometheus rules');
+    }
+  },
+
+  async checkHealth(): Promise<boolean> {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/health`);
+      return response.data.status === 'OK';
+    } catch (error) {
+      return false;
+    }
+  },
+
+  async checkSuperAlarm(): Promise<SuperAlarmStatus> {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/check_superalarm`);
+      return response.data;
+    } catch (error: any) {
+      return {
+        available: false,
+        error: error.response?.data?.error || 'Failed to check superalarm status'
+      };
+    }
+  }
+};
+>>>>>>> 26c8a8b (UI mod)

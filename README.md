@@ -9,6 +9,12 @@ A modern React-based dashboard for managing cluster configurations with support 
 - **Node.js** (v16 or higher)
 - **npm** or **yarn** - for frontend dependencies
 
+### Backend setup
+cd server
+python -m pip install -r requirements.txt
+npm run server
+
+
 ### Frontend Setup
 
 1. **Install Dependencies**
@@ -25,6 +31,7 @@ A modern React-based dashboard for managing cluster configurations with support 
    - Open your browser and navigate to `http://localhost:5173`
    - The dashboard will load with a professional UI for cluster management
    - **Note**: This is currently a frontend-only application with mock data
+
 
 ## 📁 Project Structure
 

@@ -1,9 +1,25 @@
 import React, { useState } from 'react';
-import { Button, Input, Tabs, App, Table, Space, Collapse, Spin, Alert, Form, InputNumber, Switch, Select, Card, Row, Col } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, InfoCircleOutlined, SaveOutlined } from '@ant-design/icons';
+import { Button, Input, Tabs, App, Collapse, Spin, Alert, InputNumber, Switch } from 'antd';
+import { InfoCircleOutlined, SaveOutlined } from '@ant-design/icons';
 import * as yaml from 'js-yaml';
 import type { YamlSections } from '../types/clusterTypes';
-import type { ColumnsType } from 'antd/es/table';
+import { prometheusService } from '../services/prometheusService';
+import configData from '../../config.json';
+import { useSearchParams } from 'react-router-dom';
+
+/*
+Directory structure of the cluster configuration:
+
+cluster.yml         # Cluster definition
+device_models/      # Device model definitions
+├── device_model_name.yml
+tenants/            # Tenant-specific configurations
+ └── tenant_name.yml     # Tenant-specific checks
+networks/            # Tenant-specific configurations
+    └── network_name.yml     # Tenant-specific checks 
+network_name_nodes_file.csv
+network_name_links_file.csv
+*/
 
 interface ClusterYmlEditorProps {
   yamlSections: YamlSections;
@@ -19,16 +35,31 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
   setYamlActiveTab
 }) => {
   const { message } = App.useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Base directory configuration
-  const [modelDir, setModelDir] = useState<string>("./public/clusters/yiwu2-6");
+  // Update the modelDir state initialization:
+  const [modelDir, setModelDir] = useState<string>(() => {
+    // Try to get from URL params first, then localStorage, then default
+    const urlDir = searchParams.get('clusterDir');
+    const savedDir = localStorage.getItem('clusterModelDir');
+    return urlDir || savedDir || "./";
+  });
   const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
 
   // Add state for device model configurations and editing
-  const [deviceModelConfigs, setDeviceModelConfigs] = useState<Record<string, any>>({});
+  const [nameConfigs, setDeviceModelConfigs] = useState<Record<string, any>>({});
   const [loadingConfigs, setLoadingConfigs] = useState<Record<string, boolean>>({});
   const [editingConfigs, setEditingConfigs] = useState<Record<string, any>>({});
   const [savingConfigs, setSavingConfigs] = useState<Record<string, boolean>>({});
+  
+  // Add state for Prometheus rules generation
+  const [generatingRules, setGeneratingRules] = useState<boolean>(false);
+  const [showPromRulesModal, setShowPromRulesModal] = useState<boolean>(false);
+  const [promRulesConfig, setPromRulesConfig] = useState({
+    cluster_dir: configData.DEFAULT_CLUSTER_DIR,
+    output_dir: `${modelDir}/prometheus_rules`
+  });
+  
   // Remove the activeEpilogueTab state since we won't need it anymore
   // const [activeEpilogueTab, setActiveEpilogueTab] = useState<string>('0'); // Remove this line
 
@@ -60,6 +91,19 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
         request_labels: [],
         set_labels: {}
       };
+    }
+  };
+
+  // Device Model YAML Parser
+  const parseDeviceModelContent = (content: string) => {
+    try {
+      const parsed = yaml.load(content) as any;
+      console.log('Parsed device model YAML:', parsed);
+      return parsed;
+    } catch (error) {
+      console.error('Error parsing device model YAML:', error);
+      message.error('Failed to parse device model content');
+      return null;
     }
   };
 
@@ -96,7 +140,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
       const dirHandle = await (window as any).showDirectoryPicker();
   
       // Ensure subdirectories
-      const deviceModelsDir = await dirHandle.getDirectoryHandle('device_models', { create: true });
+      const namesDir = await dirHandle.getDirectoryHandle('device_models', { create: true });
       const networksDir = await dirHandle.getDirectoryHandle('networks', { create: true });
       await dirHandle.getDirectoryHandle('tenants', { create: true });
   
@@ -149,7 +193,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
         if (edited) {
           content = yaml.dump(edited);
         } else {
-          const loaded = deviceModelConfigs[model];
+          const loaded = nameConfigs[model];
           if (loaded) {
             content = yaml.dump(loaded);
           } else {
@@ -161,7 +205,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
         }
   
         if (content) {
-          await writeTextFile(deviceModelsDir, `${model}.yml`, content);
+          await writeTextFile(namesDir, `${model}.yml`, content);
         } else {
           message.warning(`Skipped saving device model: ${model}.yml (no config found)`);
         }
@@ -230,59 +274,62 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
     await writable.close();
   };
 
-  // Function to load device model configuration
-  const loadDeviceModelConfig = async (deviceModel: string) => {
-    if (deviceModelConfigs[deviceModel] || loadingConfigs[deviceModel]) {
+  // Function to load device model, network, or tenant configuration
+  const loadDeviceModelConfig = async (name: string, type: 'device' | 'network' | 'tenant' = 'device') => {
+    if (nameConfigs[name] || loadingConfigs[name]) {
       return; // Already loaded or loading
     }
 
-    setLoadingConfigs(prev => ({ ...prev, [deviceModel]: true }));
+    setLoadingConfigs(prev => ({ ...prev, [name]: true }));
     
     try {
-      const configPath = `${modelDir}/device_models/${deviceModel}.yml`;
+      const configPath = type === 'device' 
+        ? `${modelDir}/device_models/${name}.yml`
+        : type === 'network'
+        ? `${modelDir}/networks/${name}.yml`
+        : `${modelDir}/tenants/${name}.yml`;
       const response = await fetch(configPath);
       
       if (response.ok) {
         const content = await response.text();
         const config = parseDeviceModelContent(content);
-        setDeviceModelConfigs(prev => ({ ...prev, [deviceModel]: config }));
-        setEditingConfigs(prev => ({ ...prev, [deviceModel]: JSON.parse(JSON.stringify(config)) }));
+        setDeviceModelConfigs(prev => ({ ...prev, [name]: config }));
+        setEditingConfigs(prev => ({ ...prev, [name]: JSON.parse(JSON.stringify(config)) }));
       } else {
-        setDeviceModelConfigs(prev => ({ ...prev, [deviceModel]: null }));
+        setDeviceModelConfigs(prev => ({ ...prev, [name]: null }));
       }
     } catch (error) {
-      console.error(`Error loading device model config for ${deviceModel}:`, error);
-      setDeviceModelConfigs(prev => ({ ...prev, [deviceModel]: null }));
-      message.error(`Failed to load configuration for ${deviceModel}`);
+      console.error(`Error loading ${type} config for ${name}:`, error);
+      setDeviceModelConfigs(prev => ({ ...prev, [name]: null }));
+      message.error(`Failed to load configuration for ${name}`);
     } finally {
-      setLoadingConfigs(prev => ({ ...prev, [deviceModel]: false }));
+      setLoadingConfigs(prev => ({ ...prev, [name]: false }));
     }
   };
 
-  // Function to save device model configuration
-  const saveDeviceModelConfig = async (deviceModel: string) => {
-    setSavingConfigs(prev => ({ ...prev, [deviceModel]: true }));
+  // Function to save device model, network, or tenant configuration
+  const saveDeviceModelConfig = async (name: string, type: 'device' | 'network' | 'tenant' = 'device') => {
+    setSavingConfigs(prev => ({ ...prev, [name]: true }));
     
     try {
-      const configPath = `${modelDir}/device_models/${deviceModel}.yml`;
-      const yamlContent = yaml.dump(editingConfigs[deviceModel]);
-      
       // In a real application, this would save to the server
       // For now, we'll just update the local state
-      setDeviceModelConfigs(prev => ({ ...prev, [deviceModel]: editingConfigs[deviceModel] }));
-      message.success(`Device model configuration for ${deviceModel} saved successfully!`);
+      setDeviceModelConfigs(prev => ({ ...prev, [name]: editingConfigs[name] }));
+      const typeName = type === 'device' ? 'Device model' : type === 'network' ? 'Network' : 'Tenant';
+      message.success(`${typeName} configuration for ${name} saved successfully!`);
     } catch (error) {
-      console.error(`Error saving device model config for ${deviceModel}:`, error);
-      message.error(`Failed to save device model configuration for ${deviceModel}`);
+      console.error(`Error saving ${type} config for ${name}:`, error);
+      message.error(`Failed to save ${type} configuration for ${name}`);
     } finally {
-      setSavingConfigs(prev => ({ ...prev, [deviceModel]: false }));
+      setSavingConfigs(prev => ({ ...prev, [name]: false }));
     }
   };
 
+
   // Function to update editing configuration
-  const updateEditingConfig = (deviceModel: string, path: string, value: any) => {
+  const updateEditingConfig = (name: string, path: string, value: any) => {
     setEditingConfigs(prev => {
-      const newConfig = { ...prev[deviceModel] };
+      const newConfig = { ...prev[name] };
       const keys = path.split('.');
       let current = newConfig;
       
@@ -294,12 +341,155 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
       }
       
       current[keys[keys.length - 1]] = value;
-      return { ...prev, [deviceModel]: newConfig };
+      return { ...prev, [name]: newConfig };
     });
   };
 
+  // Reusable Configuration Section Component
+  const ConfigurationSection: React.FC<{
+    name: string;
+    type: 'device' | 'network' | 'tenant';
+    title: string;
+  }> = ({ name, type, title }) => {
+    return (
+      <div style={{ marginTop: '24px' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '16px',
+          padding: '12px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px',
+          border: '1px solid #e9ecef'
+        }}>
+          <h4 style={{ margin: 0, color: '#495057' }}>
+            {title}: {name}
+          </h4>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span style={{ 
+              fontSize: '12px', 
+              color: '#6c757d',
+              fontStyle: 'italic'
+            }}>
+              {nameConfigs[name] ? 'Loaded' : 'Not loaded'}
+            </span>
+            {!nameConfigs[name] && (
+              <Button
+                type="default"
+                onClick={() => loadDeviceModelConfig(name, type)}
+                loading={loadingConfigs[name]}
+                size="small"
+              >
+                Load Configuration
+              </Button>
+            )}
+            {nameConfigs[name] && (
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                onClick={() => saveDeviceModelConfig(name, type)}
+                loading={savingConfigs[name]}
+                size="small"
+              >
+                Save Configuration
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        <div style={{ background: 'white', padding: '20px', borderRadius: '8px' }}>
+          {editingConfigs[name] && (
+            <>
+              {/* Dynamically render configuration sections based on what's in the YAML file */}
+              {Object.entries(editingConfigs[name]).map(([configType, configData]) => {
+                // Skip non-config fields if any
+                if (typeof configData !== 'object' || configData === null) {
+                  return null;
+                }
+
+                // Convert config type to display name
+                const getDisplayName = (type: string) => {
+                  return type
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+                };
+
+                // Check if configData is an object with nested objects (for tabbed display)
+                const hasNestedObjects = Object.values(configData).some(value => 
+                  typeof value === 'object' && value !== null && !Array.isArray(value)
+                );
+
+                if (hasNestedObjects) {
+                  // Render as tabbed pane
+                  const tabItems = Object.entries(configData).map(([subType, subData]) => ({
+                    key: subType,
+                    label: (
+                      <span style={{
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#374151'
+                      }}>
+                        {getDisplayName(subType)}
+                      </span>
+                    ),
+                    children: (
+                      <div style={{ padding: '16px' }}>
+                        {renderConfigField(name, subData, `${configType}.${subType}`)}
+                      </div>
+                    )
+                  }));
+
+                  return (
+                    <div key={configType} style={{ marginBottom: '24px' }}>
+                      <h5 style={{ 
+                        margin: '0 0 16px 0', 
+                        color: '#1a365d',
+                        fontSize: '16px',
+                        fontWeight: '600'
+                      }}>
+                        {getDisplayName(configType)}
+                      </h5>
+                      <Tabs
+                        defaultActiveKey={Object.keys(configData)[0]}
+                        items={tabItems}
+                        size="small"
+                        style={{ marginTop: '8px' }}
+                      />
+                    </div>
+                  );
+                } else {
+                  // Render as simple section
+                  return (
+                    <div key={configType} style={{ marginBottom: '24px' }}>
+                      <h5 style={{ 
+                        margin: '0 0 16px 0', 
+                        color: '#1a365d',
+                        fontSize: '16px',
+                        fontWeight: '600'
+                      }}>
+                        {getDisplayName(configType)}
+                      </h5>
+                      <div style={{ padding: '16px' }}>
+                        {renderConfigField(name, configData, configType)}
+                      </div>
+                    </div>
+                  );
+                }
+              })}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Function to render editable form fields for configuration
-  const renderConfigField = (deviceModel: string, config: any, path: string = '') => {
+  const renderConfigField = (name: string, config: any, path: string = '') => {
+    // Remove the local updateEditingConfig function and use the global one
+    // const updateEditingConfig = (name: string, fieldPath: string, value: any) => { ... }
+    
     if (typeof config === 'object' && config !== null && !Array.isArray(config)) {
       return (
         <div style={{ marginLeft: path ? '16px' : '0' }}>
@@ -314,7 +504,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
               }}>
                 {key}
               </label>
-              {renderConfigField(deviceModel, value, path ? `${path}.${key}` : key)}
+              {renderConfigField(name, value, path ? `${path}.${key}` : key)}
             </div>
           ))}
         </div>
@@ -322,20 +512,192 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
     } else if (Array.isArray(config)) {
       return (
         <div style={{ marginLeft: path ? '16px' : '0' }}>
-          {config.map((item, index) => (
-            <div key={index} style={{ marginBottom: '8px' }}>
-              <label style={{ 
-                display: 'block', 
-                fontSize: '12px', 
-                fontWeight: '500', 
-                color: '#6b7280',
-                marginBottom: '4px' 
-              }}>
-                Item {index + 1}
-              </label>
-              {renderConfigField(deviceModel, item, `${path}[${index}]`)}
-            </div>
-          ))}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '10px' }}>
+
+            <Button 
+              size="small" 
+              onClick={() => {
+                const newValue = [...config, ''];
+                updateEditingConfig(name, path, newValue); // This will now use the global function
+              }}
+              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', color: 'white' }}
+            >
+              ➕ Add Item
+            </Button>
+          </div>
+          <div style={{ 
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0',
+            padding: '12px'
+          }}>
+            {config.map((item, index) => {
+            // Check if the item is a string that can be split by space
+            if (typeof item === 'string' && item.includes(' ')) {
+              const parts = item.split(' ');
+              const key = parts[0];
+              const value = parts.slice(1).join(' ');
+              
+              return (
+                <div key={index} style={{ 
+                  display: 'flex', 
+                  gap: '8px', 
+                  alignItems: 'center',
+                  padding: '8px 0',
+                }}>
+                  <div style={{ flex: '0 0 200px' }}>
+                    <Input
+                      value={key}
+                      onChange={(e) => {
+                        const newValue = [...config];
+                        newValue[index] = e.target.value + ' ' + value;
+                        updateEditingConfig(name, path, newValue);
+                      }}
+                      placeholder="Enter key"
+                      size="small"
+                    />
+                  </div>
+                  <div style={{ flex: '1' }}>
+                    <Input
+                      value={value}
+                      onChange={(e) => {
+                        const newValue = [...config];
+                        newValue[index] = key + ' ' + e.target.value;
+                        updateEditingConfig(name, path, newValue);
+                      }}
+                      placeholder="Enter value"
+                      size="small"
+                    />
+                  </div>
+                  <Button
+                    size="small"
+                    danger
+                    onClick={() => {
+                      const newValue = config.filter((_, i) => i !== index);
+                      updateEditingConfig(name, path, newValue);
+                    }}
+                    style={{ 
+                      minWidth: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    🗑️
+                  </Button>
+                </div>
+              );
+            } else if (typeof item === 'string' && !item.includes(' ')) {
+              // Display single key with radio button
+              return (
+                <div key={index} style={{ 
+                  display: 'flex', 
+                  gap: '8px', 
+                  alignItems: 'center',
+                  padding: '8px 0',
+                }}>
+                  <div style={{ flex: '0 0 200px' }}>
+                    <Input
+                      value={item}
+                      onChange={(e) => {
+                        const newValue = [...config];
+                        newValue[index] = e.target.value;
+                        updateEditingConfig(name, path, newValue);
+                      }}
+                      placeholder="Enter key"
+                      size="small"
+                    />
+                  </div>
+                  <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      onChange={(e) => {
+                        if (!e.target.checked) {
+                          // If unchecked, remove the item from the array
+                          const newValue = config.filter((_, i) => i !== index);
+                          updateEditingConfig(name, path, newValue);
+                        }
+                      }}
+                      style={{ 
+                        width: '16px',
+                        height: '16px',
+                        accentColor: '#1890ff'
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: '1' }}>
+                    <span style={{ color: '#6b7280', fontSize: '12px', fontStyle: 'italic' }}>
+                      (enabled)
+                    </span>
+                  </div>
+                  <Button
+                    size="small"
+                    danger
+                    onClick={() => {
+                      const newValue = config.filter((_, i) => i !== index);
+                      updateEditingConfig(name, path, newValue);
+                    }}
+                    style={{ 
+                      minWidth: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    🗑️
+                  </Button>
+                </div>
+              );
+            } else {
+              // Display non-splittable items as simple input fields
+              return (
+                <div key={index} style={{ 
+                  display: 'flex', 
+                  gap: '8px', 
+                  alignItems: 'center',
+                  padding: '8px 0',
+                }}>
+                  <div style={{ flex: '1' }}>
+                    <Input
+                      value={typeof item === 'number' ? item.toString() : item}
+                      onChange={(e) => {
+                        const newValue = [...config];
+                        let value: any = e.target.value;
+                        if (typeof item === 'number') {
+                          value = parseFloat(e.target.value) || 0;
+                        }
+                        newValue[index] = value;
+                        updateEditingConfig(name, path, newValue);
+                      }}
+                      placeholder="Enter value"
+                      size="small"
+                    />
+                  </div>
+                  <Button
+                    size="small"
+                    danger
+                    onClick={() => {
+                      const newValue = config.filter((_, i) => i !== index);
+                      updateEditingConfig(name, path, newValue);
+                    }}
+                    style={{ 
+                      minWidth: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    🗑️
+                  </Button>
+                </div>
+              );
+            }
+          })}
+          </div>
         </div>
       );
     } else {
@@ -346,14 +708,14 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
         return (
           <Switch
             checked={config}
-            onChange={(checked) => updateEditingConfig(deviceModel, currentPath, checked)}
+            onChange={(checked) => updateEditingConfig(name, currentPath, checked)}
           />
         );
       } else if (typeof config === 'number') {
         return (
           <InputNumber
             value={config}
-            onChange={(value) => updateEditingConfig(deviceModel, currentPath, value)}
+            onChange={(value) => updateEditingConfig(name, currentPath, value)}
             style={{ width: '100%' }}
           />
         );
@@ -361,7 +723,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
         return (
           <Input
             value={config}
-            onChange={(e) => updateEditingConfig(deviceModel, currentPath, e.target.value)}
+            onChange={(e) => updateEditingConfig(name, currentPath, e.target.value)}
             placeholder={`Enter ${path.split('.').pop()}`}
           />
         );
@@ -527,189 +889,42 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
     message.success('Set label deleted!');
   };
 
-  // Add the ModelSection component (similar to ClusterConfigEditor)
-  const ModelSection: React.FC<{
-    title: string;
-    modelType: string;
-    deviceModel: string;
-    modelData: Record<string, any>;
-    onAddField: (deviceModel: string, modelType: string) => void;
-    onFieldChange: (deviceModel: string, modelType: string, fieldName: string, value: any) => void;
-    onRemoveField: (deviceModel: string, modelType: string, fieldName: string) => void;
-  }> = ({ title, modelType, deviceModel, modelData, onAddField, onFieldChange, onRemoveField }) => {
-    return (
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <h4 style={{ margin: 0, color: '#1a365d', fontSize: '16px' }}>{title}</h4>
-          <Button 
-            size="small" 
-            onClick={() => onAddField(deviceModel, modelType)}
-            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', color: 'white' }}
-          >
-            ➕ Add Field
-          </Button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'center' }}>
-          {Object.entries(modelData).map(([fieldName, fieldValue]) => (
-            <React.Fragment key={fieldName}>
-              <Input
-                value={fieldName}
-                onChange={(e) => {
-                  const newValue = modelData[fieldName];
-                  onRemoveField(deviceModel, modelType, fieldName);
-                  onFieldChange(deviceModel, modelType, e.target.value, newValue);
-                }}
-                placeholder="Field name"
-                style={{ fontSize: '12px' }}
-              />
-              {typeof fieldValue === 'boolean' ? (
-                <Button
-                  type={fieldValue ? 'primary' : 'default'}
-                  size="small"
-                  onClick={() => onFieldChange(deviceModel, modelType, fieldName, !fieldValue)}
-                  style={{ 
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    backgroundColor: fieldValue ? '#3b82f6' : 'transparent',
-                    borderColor: fieldValue ? '#3b82f6' : '#e2e8f0',
-                    borderWidth: '2px',
-                    color: fieldValue ? 'white' : '#64748b',
-                    boxShadow: fieldValue 
-                      ? '0 2px 8px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)' 
-                      : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 0,
-                    cursor: 'pointer',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                >
-                  {fieldValue ? (
-                    <div style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: 'white',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
-                    }} />
-                  ) : (
-                    <div style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: 'transparent',
-                      border: '2px solid #e2e8f0'
-                    }} />
-                  )}
-                </Button>
-              ) : (
-                <Input
-                  value={typeof fieldValue === 'number' ? fieldValue.toString() : fieldValue}
-                  onChange={(e) => {
-                    let value: any = e.target.value;
-                    if (typeof fieldValue === 'number') {
-                      value = parseFloat(e.target.value) || 0;
-                    }
-                    onFieldChange(deviceModel, modelType, fieldName, value);
-                  }}
-                  placeholder="Field value"
-                  style={{ fontSize: '12px' }}
-                />
-              )}
-              <Button
-                size="small"
-                danger
-                onClick={() => onRemoveField(deviceModel, modelType, fieldName)}
-                style={{ minWidth: '60px' }}
-              >
-                🗑️
-              </Button>
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // Add handlers for device model configuration
-  const handleAddModelField = (deviceModel: string, modelType: string) => {
-    const fieldName = prompt('Enter field name:');
-    if (fieldName) {
-      setEditingConfigs(prev => {
-        const newConfig = { ...prev[deviceModel] };
-        const pathParts = modelType.split('.');
-        let current = newConfig;
-        
-        // Navigate to the correct nested object
-        for (let i = 0; i < pathParts.length; i++) {
-          if (!current[pathParts[i]]) {
-            current[pathParts[i]] = {};
-          }
-          current = current[pathParts[i]];
-        }
-        
-        current[fieldName] = '';
-        return { ...prev, [deviceModel]: newConfig };
-      });
-    }
-  };
-
-  const handleModelFieldChange = (deviceModel: string, modelType: string, fieldName: string, value: any) => {
-    setEditingConfigs(prev => {
-      const newConfig = { ...prev[deviceModel] };
-      const pathParts = modelType.split('.');
-      let current = newConfig;
-      
-      // Navigate to the correct nested object
-      for (let i = 0; i < pathParts.length; i++) {
-        if (!current[pathParts[i]]) {
-          current[pathParts[i]] = {};
-        }
-        current = current[pathParts[i]];
-      }
-      
-      current[fieldName] = value;
-      return { ...prev, [deviceModel]: newConfig };
-    });
-  };
-
-  const handleRemoveModelField = (deviceModel: string, modelType: string, fieldName: string) => {
-    setEditingConfigs(prev => {
-      const newConfig = { ...prev[deviceModel] };
-      const pathParts = modelType.split('.');
-      let current = newConfig;
-      
-      // Navigate to the correct nested object
-      for (let i = 0; i < pathParts.length; i++) {
-        if (!current[pathParts[i]]) {
-          return { ...prev, [deviceModel]: newConfig };
-        }
-        current = current[pathParts[i]];
-      }
-      
-      if (current && typeof current === 'object') {
-        delete current[fieldName];
-      }
-      return { ...prev, [deviceModel]: newConfig };
-    });
-  };
-
   const handleDirectorySelect = () => {
     setShowDirectoryModal(true);
   };
 
   const handleDirectoryConfirm = (newDir: string) => {
     setModelDir(newDir);
+    // Save to localStorage for persistence
+    localStorage.setItem('clusterModelDir', newDir);
     setShowDirectoryModal(false);
     message.success(`Directory changed to: ${newDir}`);
     // Reload the YAML file with the new directory
     loadYamlFile();
+  };
+
+  const handleGeneratePromRules = async () => {
+    setGeneratingRules(true);
+    try {
+      const result = await prometheusService.generatePromRules({
+        cluster_dir: promRulesConfig.cluster_dir,
+        output_dir: promRulesConfig.output_dir
+      });
+      message.success(`Generated ${result.rules_count} Prometheus rules successfully!`);
+      setShowPromRulesModal(false);
+    } catch (error: any) {
+      message.error(`Failed to generate Prometheus rules: ${error.message}`);
+    } finally {
+      setGeneratingRules(false);
+    }
+  };
+
+  const handleOpenPromRulesModal = () => {
+    setPromRulesConfig({
+      cluster_dir: configData.DEFAULT_CLUSTER_DIR,
+      output_dir: `${modelDir}/prometheus_rules`
+    });
+    setShowPromRulesModal(true);
   };
 
   return (
@@ -780,6 +995,23 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
               }}
             >
               💾 Save
+            </Button>
+            <Button
+              onClick={handleOpenPromRulesModal}
+              loading={generatingRules}
+              style={{ 
+                height: '40px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                border: 'none',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '14px',
+                padding: '0 20px',
+                boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
+              }}
+            >
+              📊 Generate Prom Rules
             </Button>
           </div>
         </div>
@@ -962,190 +1194,13 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                           </div>
 
                           {/* Device Model Configuration Section */}
-                          <div style={{ 
-                            border: '2px solid #e2e8f0', 
-                            borderRadius: '12px', 
-                            padding: '20px',
-                            backgroundColor: '#f8fafc',
-                            marginTop: '20px'
-                          }}>
-                            <h4 style={{ margin: '0 0 16px 0', color: '#2d3748' }}>
-                              Device Model Configuration
-                            </h4>
-                            
-                            {(() => {
-                              const deviceModel = device.device_model;
-                              
-                              if (!deviceModel) {
-                                return (
-                                  <Alert
-                                    message="No device model specified"
-                                    type="warning"
-                                  />
-                                );
-                              }
-
-                              const config = deviceModelConfigs[deviceModel];
-                              const editingConfig = editingConfigs[deviceModel];
-                              const isLoading = loadingConfigs[deviceModel];
-                              const isSaving = savingConfigs[deviceModel];
-
-                              if (isLoading) {
-                                return (
-                                  <div style={{ padding: '16px', textAlign: 'center' }}>
-                                    <Spin size="small" />
-                                    <span style={{ marginLeft: '8px' }}>Loading device model configuration...</span>
-                                  </div>
-                                );
-                              }
-
-                              if (config === null) {
-                                return (
-                                  <Alert
-                                    message={`Device model configuration not found: ${deviceModel}.yml`}
-                                    type="error"
-                                  />
-                                );
-                              }
-
-                              if (config === undefined) {
-                                return (
-                                  <div style={{ padding: '16px' }}>
-                                    <Button
-                                      type="link"
-                                      icon={<InfoCircleOutlined />}
-                                      onClick={() => loadDeviceModelConfig(deviceModel)}
-                                    >
-                                      Load device model configuration
-                                    </Button>
-                                  </div>
-                                );
-                              }
-
-                              return (
-                                <div>
-                                  <div style={{ 
-                                    display: 'flex', 
-                                    justifyContent: 'space-between', 
-                                    alignItems: 'center',
-                                    marginBottom: '16px' 
-                                  }}>
-                                    <span style={{ color: '#64748b', fontSize: '14px' }}>
-                                      Configuration for: {deviceModel}
-                                    </span>
-                                    <Button
-                                      type="primary"
-                                      icon={<SaveOutlined />}
-                                      onClick={() => saveDeviceModelConfig(deviceModel)}
-                                      loading={isSaving}
-                                      size="small"
-                                    >
-                                      Save Configuration
-                                    </Button>
-                                  </div>
-                                  
-                                  <div style={{ background: 'white', padding: '20px', borderRadius: '8px' }}>
-                                    {editingConfig && (
-                                      <>
-                                        {/* Dynamically render model sections based on what's in the YAML file */}
-                                        {Object.entries(editingConfig).map(([modelType, modelData]) => {
-                                          // Skip non-model fields if any
-                                          if (typeof modelData !== 'object' || modelData === null) {
-                                            return null;
-                                          }
-
-                                          // Convert model type to display name
-                                          const getDisplayName = (type: string) => {
-                                            return type
-                                              .split('_')
-                                              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                                              .join(' ');
-                                          };
-
-                                          // Check if modelData is an object with nested objects (for tabbed display)
-                                          const hasNestedObjects = Object.values(modelData).some(value => 
-                                            typeof value === 'object' && value !== null && !Array.isArray(value)
-                                          );
-
-                                          if (hasNestedObjects) {
-                                            // Render as tabbed pane
-                                            const tabItems = Object.entries(modelData).map(([subType, subData]) => ({
-                                              key: subType,
-                                              label: (
-                                                <span style={{
-                                                  fontSize: '14px',
-                                                  fontWeight: '500',
-                                                  color: '#374151'
-                                                }}>
-                                                  {getDisplayName(subType)}
-                                                </span>
-                                              ),
-                                              children: (
-                                                <div style={{ padding: '16px 0' }}>
-                                                  <ModelSection
-                                                    title=""
-                                                    modelType={`${modelType}.${subType}`}
-                                                    deviceModel={deviceModel}
-                                                    modelData={subData}
-                                                    onAddField={handleAddModelField}
-                                                    onFieldChange={handleModelFieldChange}
-                                                    onRemoveField={handleRemoveModelField}
-                                                  />
-                                                </div>
-                                              )
-                                            }));
-
-                                            return (
-                                              <div key={modelType} style={{ marginBottom: '24px' }}>
-                                                <h4 style={{ 
-                                                  margin: '0 0 16px 0', 
-                                                  color: '#1a365d', 
-                                                  fontSize: '18px',
-                                                  fontWeight: '600'
-                                                }}>
-                                                  {getDisplayName(modelType)}
-                                                </h4>
-                                                <Tabs
-                                                  defaultActiveKey={Object.keys(modelData)[0]}
-                                                  items={tabItems}
-                                                  style={{
-                                                    background: '#ffffff',
-                                                    borderRadius: '8px',
-                                                    border: '1px solid #e2e8f0'
-                                                  }}
-                                                  tabBarStyle={{
-                                                    background: '#f8fafc',
-                                                    margin: 0,
-                                                    padding: '0 16px',
-                                                    borderBottom: '1px solid #e2e8f0',
-                                                    borderRadius: '8px 8px 0 0'
-                                                  }}
-                                                />
-                                              </div>
-                                            );
-                                          } else {
-                                            // Render as regular ModelSection
-                                            return (
-                                              <ModelSection
-                                                key={modelType}
-                                                title={getDisplayName(modelType)}
-                                                modelType={modelType}
-                                                deviceModel={deviceModel}
-                                                modelData={modelData}
-                                                onAddField={handleAddModelField}
-                                                onFieldChange={handleModelFieldChange}
-                                                onRemoveField={handleRemoveModelField}
-                                              />
-                                            );
-                                          }
-                                        })}
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
+                          {device.device_model && (
+                            <ConfigurationSection 
+                              name={device.device_model}
+                              type="device"
+                              title="Device Model Configuration"
+                            />
+                          )}
                         </div>
                       )
                     }))}
@@ -1328,6 +1383,15 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                   />
                 </div>
               </div>
+              
+              {/* Network Configuration Section */}
+              {network.network && (
+                <ConfigurationSection 
+                  name={network.network}
+                  type="network"
+                  title="Network Configuration"
+                />
+              )}
             </div>
           )
         }))}
@@ -1514,6 +1578,15 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                               />
                             </div>
                           </div>
+                          
+                          {/* Tenant Configuration Section */}
+                          {tenant.tenant && (
+                            <ConfigurationSection 
+                              name={tenant.tenant}
+                              type="tenant"
+                              title="Tenant Configuration"
+                            />
+                          )}
                         </div>
                       )
                     }))}
@@ -1927,6 +2000,127 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                 }}
               >
                 Load Directory
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showPromRulesModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '600px',
+            maxWidth: '90vw',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#1a365d' }}>
+              Generate Prometheus Rules
+            </h3>
+            <p style={{ margin: '0 0 20px 0', color: '#64748b', fontSize: '14px' }}>
+              Configure the cluster directory and output directory for Prometheus rules generation.
+            </p>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: '14px', 
+                fontWeight: '600', 
+                color: '#374151',
+                marginBottom: '8px' 
+              }}>
+                Cluster Directory
+              </label>
+              <Input
+                value={promRulesConfig.cluster_dir}
+                onChange={(e) => setPromRulesConfig(prev => ({ ...prev, cluster_dir: e.target.value }))}
+                placeholder="e.g., ./public/clusters/yiwu2-6"
+                style={{ 
+                  height: '40px',
+                  borderRadius: '8px',
+                  border: '2px solid #d1d5db'
+                }}
+              />
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#64748b', 
+                marginTop: '4px' 
+              }}>
+                Path to the cluster configuration directory containing cluster.yml
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: '14px', 
+                fontWeight: '600', 
+                color: '#374151',
+                marginBottom: '8px' 
+              }}>
+                Output Directory
+              </label>
+              <Input
+                value={promRulesConfig.output_dir}
+                onChange={(e) => setPromRulesConfig(prev => ({ ...prev, output_dir: e.target.value }))}
+                placeholder="e.g., ./output/prometheus_rules"
+                style={{ 
+                  height: '40px',
+                  borderRadius: '8px',
+                  border: '2px solid #d1d5db'
+                }}
+              />
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#64748b', 
+                marginTop: '4px' 
+              }}>
+                Directory where the generated Prometheus rules will be saved
+              </div>
+            </div>
+
+            <div style={{ 
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'flex-end' 
+            }}>
+              <Button
+                onClick={() => setShowPromRulesModal(false)}
+                disabled={generatingRules}
+                style={{
+                  height: '36px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  color: '#374151'
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                onClick={handleGeneratePromRules}
+                loading={generatingRules}
+                style={{
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  border: 'none',
+                  fontWeight: '600'
+                }}
+              >
+                {generatingRules ? 'Generating...' : 'Generate Rules'}
               </Button>
             </div>
           </div>
