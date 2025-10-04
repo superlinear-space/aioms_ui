@@ -10,7 +10,6 @@ import {
   BarChartOutlined
 } from '@ant-design/icons';
 import CheckRequestMatrix from './CheckRequestMatrix';
-import ClusterConfigEditor from './ClusterConfigEditor';
 import ClusterYmlEditor from './ClusterYmlEditor';
 import type { Sections, YamlSections } from '../types/clusterTypes';
 
@@ -91,14 +90,10 @@ const Dashboard: React.FC = () => {
         );
       case 'menu2':
         return (
-          <ClusterConfigEditor
-            sections={sections}
-            setSections={setSections}
-            fileName={fileName}
-            setFileName={setFileName}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
+          <div style={{ padding: '24px' }}>
+            <h1>Menu 2 Content</h1>
+            <p>This is the content for Menu 2.</p>
+          </div>
         );
       case 'menu3':
         return (
