@@ -1,35 +1,22 @@
 import React, { useState } from 'react';
-import { Layout, Button, Input, Tabs, Collapse, App } from 'antd';
+import { Layout, Button } from 'antd';
 import { 
   LogoutOutlined, 
   MenuFoldOutlined, 
   MenuUnfoldOutlined,
   DashboardOutlined,
   SettingOutlined,
-  TeamOutlined,
   BarChartOutlined
 } from '@ant-design/icons';
 import CheckRequestMatrix from './CheckRequestMatrix';
 import ClusterYmlEditor from './ClusterYmlEditor';
-import type { Sections, YamlSections } from '../types/clusterTypes';
+import type { YamlSections } from '../types/clusterTypes';
 
 const { Header, Content, Sider } = Layout;
 
 const Dashboard: React.FC = () => {
-  const { message } = App.useApp();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState('menu1');
-  const [activeTab, setActiveTab] = useState('settings');
-  const [fileName, setFileName] = useState('~/projects/superalarm/clusters/yiwu2-6/cluster_all.txt');
-
-  const [sections, setSections] = useState<Sections>({
-    'settings': '',
-    'device_groups': {},
-    'networks': {},
-    'tenants': {},
-    'system': { checks: {} },
-    'available_checks': ''
-  });
 
   const [yamlSections, setYamlSections] = useState<YamlSections>({
     devices: [],
@@ -67,7 +54,7 @@ const Dashboard: React.FC = () => {
     },
     {
       key: 'menu3',
-      icon: <TeamOutlined />,
+      icon: <DashboardOutlined />,
       label: 'Menu 3',
     },
     {
@@ -97,7 +84,7 @@ const Dashboard: React.FC = () => {
         );
       case 'menu3':
         return (
-          <div style={{ padding: '24px' }}>
+          <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
             <CheckRequestMatrix />
           </div>
         );

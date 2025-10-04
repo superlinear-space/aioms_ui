@@ -29,6 +29,12 @@ check_requests:
   
   - domain: "R6500"
     instance: "GPU1"
+    check_function: "GPU_TEMP_CHECK"
+    value: 1
+    timestamp: 1703123456789
+
+  - domain: "R6500"
+    instance: "GPU1"
     check_function: "GPU_UTIL_CHECK"
     value: 0
     timestamp: 1703123456789
@@ -45,6 +51,12 @@ check_requests:
     value: 1
     timestamp: 1703123456789
   
+  - domain: "R6500"
+    instance: "GPU2"
+    check_function: "GPU_UTIL_CHECK"
+    value: 2
+    timestamp: 1703123456789
+
   - domain: "CPU_Server"
     instance: "CPU0"
     check_function: "CPU_COUNT_CHECK"
@@ -75,6 +87,12 @@ check_requests:
     value: 1
     timestamp: 1703123456789
   
+  - domain: "CPU_Server"
+    instance: "CPU2"
+    check_function: "CPU_COUNT_CHECK"
+    value: 0
+    timestamp: 1703123456789
+
   - domain: "domain3"
     instance: "instance1"
     check_function: "cf2"
