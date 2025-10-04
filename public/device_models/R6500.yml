@@ -1,0 +1,61 @@
+hardware_model:
+  - cpu_count_check 2
+  - gpu_count_check 8
+  - memory_stick_count_check 32
+  - memory_total_size_check 2000
+  # - memory_speed_check 5600
+  - nvme_count_check 4
+  - nvme_disk_total_size_check 30400
+  - ssd_count_check 2
+  - ssd_disk_total_size_check 1780
+  - infiniband_count_check mlx5_[0-9] 10 # FIXME: to use ConnectX-7
+  - ethernet_count_check 4
+  - psu_count_check 8
+  - fan_count_check 15
+  - temp_sensor_count_check 62
+performance_model:
+  - cpu_util_check 0.95
+  # Comment [future design pattern]: cpu_util: cpu_util_check 0.95 if-fail fix_cpu_high_util_action
+  - gpu_ecc_check 0
+  - gpu_temp_check 83
+  - link_flapping_check 2
+  - nvlink_status_check
+  - memory_usage_check 0.95
+  - swap_usage_check 0.8
+  - fs_usage_check 0.95
+  - fs_free_volume_check / 102400 # TODO: check the proper value
+  - pcie_downgrade_check # TODO: implement it
+service_model:
+  - fs_mount_check /gpfs
+active_test_suite:
+  - gpu_dcgm_check
+exporters_constraints:
+  node_exporter:
+    port: 19100
+    capabilities:
+      - '--collector.cpu.info'
+      - '--collector.netdev'
+      - '--collector.pcidevice'
+  dcgm_exporter: 
+    port: 19400
+  idrac_exporter:
+    port: 9116
+    installed_host: 192.168.1.100
+  node_snmp_exporter:
+    port: 9117
+    installed_host: 192.168.1.100
+    modules:
+      - if_mib
+      - ruijie_switch
+  ipmi_exporter:
+    port: 9118
+    installed_host: 192.168.1.100
+  node_blackbox_exporter:
+    port: 9115
+    modules:
+      - icmp
+      - tcp_connect
+    capabilities:
+      - --config.file=/etc/blackbox_exporter/config.yml
+
+# Imply: the used exporters must be UP

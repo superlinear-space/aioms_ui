@@ -1,0 +1,12 @@
+device_type: IB_SWITCH
+performance_model:
+ - switch_cpu_util_check 0.7
+ - switch_memory_usage_check 0.8
+ - switch_temp_check 96
+exporters_constraints:
+  node_snmp_exporter:
+    port: 9117
+    installed_host: 192.168.1.100
+    modules:
+      - if_mib
+      - ruijie_switch

@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Tag, Spin, Button, Space, Tooltip, Statistic, Row, Col, Select, Input } from 'antd';
+import { Spin, Button, Tooltip, Row, Col, Select, Input } from 'antd';
 import { ReloadOutlined, FilterOutlined } from '@ant-design/icons';
-import type { DomainMatrixData } from '../data/mockData';
-import { STATUS_MAP } from '../data/mockData';
-import { CheckRequestService } from '../services/checkRequestService';
+import { PrometheusService, type MatrixData } from '../services/prometheusService';
+
+// 状态映射
+const STATUS_MAP = {
+  0: { label: 'Healthy', color: '#52c41a', bgColor: '#f6ffed' },
+  1: { label: 'Failed', color: '#ff4d4f', bgColor: '#fff2f0' },
+  2: { label: 'Unknown', color: '#fadb14', bgColor: '#fffbe6' }
+};
 
 const { Option } = Select;
 
@@ -12,7 +17,7 @@ interface CheckRequestMatrixProps {
 }
 
 const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) => {
-  const [matrixData, setMatrixData] = useState<DomainMatrixData[]>([]);
+  const [matrixData, setMatrixData] = useState<MatrixData[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<string>('');
   const [searchInstance, setSearchInstance] = useState<string>('');
@@ -24,14 +29,14 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
     setLoading(true);
     setError('');
     try {
-      const data = await CheckRequestService.getMatrixData();
+      const data = await PrometheusService.buildMatrixData();
       setMatrixData(data);
       if (data.length === 0) {
-        setError('No data found. Please check the YAML configuration file.');
+        setError('No data found. Please check the cluster configuration and Prometheus connection.');
       }
     } catch (error) {
       console.error('Failed to load matrix data:', error);
-      setError('Failed to load data. Please check the YAML file format.');
+      setError('Failed to load data. Please check the cluster configuration and Prometheus connection.');
     } finally {
       setLoading(false);
     }
@@ -62,9 +67,6 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
       ).sort()
     : [];
 
-  // 过滤数据
-  // 仅展示一个已选domain
-  const filteredData = selectedDomainData ? [selectedDomainData] : [];
 
   // 简化的矩阵显示（纵轴：instances；横轴：check functions）
   const renderMatrix = () => {
@@ -240,30 +242,12 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
   };
 
   // 统计数据
-  const getStatistics = () => {
-    const allRequests = matrixData.flatMap(domain =>
-      Object.values(domain.instances).flatMap(instance => Object.values(instance))
-    );
-
-    const stats = allRequests.reduce((acc, req) => {
-      acc[req.value] = (acc[req.value] || 0) + 1;
-      return acc;
-    }, {} as Record<number, number>);
-
-    return {
-      total: allRequests.length,
-      healthy: stats[0] || 0,
-      failed: stats[1] || 0,
-      unknown: stats[2] || 0,
-    };
-  };
-
   const statistics = (() => {
     if (!selectedDomainData) {
       return { total: 0, healthy: 0, failed: 0, unknown: 0 };
     }
     const allRequests = Object.values(selectedDomainData.instances).flatMap(inst => Object.values(inst));
-    const stats = (allRequests as any[]).reduce((acc, req: any) => {
+    const stats = allRequests.reduce((acc, req) => {
       acc[req.value] = (acc[req.value] || 0) + 1;
       return acc;
     }, {} as Record<number, number>);
@@ -343,10 +327,10 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
               color: 'white',
               boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)'
             }}>
-              <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>
+              <div style={{ fontSize: '64px', fontWeight: '700', marginBottom: '8px' }}>
                 {statistics.total}
               </div>
-              <div style={{ fontSize: '14px', fontWeight: '600', opacity: 0.9 }}>
+              <div style={{ fontSize: '28px', fontWeight: '600', opacity: 0.9 }}>
                 Total
               </div>
             </div>
@@ -360,10 +344,10 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
               color: 'white',
               boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)'
             }}>
-              <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>
+              <div style={{ fontSize: '64px', fontWeight: '700', marginBottom: '8px' }}>
                 {statistics.healthy}
               </div>
-              <div style={{ fontSize: '14px', fontWeight: '600', opacity: 0.9 }}>
+              <div style={{ fontSize: '28px', fontWeight: '600', opacity: 0.9 }}>
                 Healthy
               </div>
             </div>
@@ -377,10 +361,10 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
               color: 'white',
               boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.3)'
             }}>
-              <div style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>
+              <div style={{ fontSize: '64px', fontWeight: '700', marginBottom: '8px' }}>
                 {statistics.failed}
               </div>
-              <div style={{ fontSize: '14px', fontWeight: '600', opacity: 0.9 }}>
+              <div style={{ fontSize: '28px', fontWeight: '600', opacity: 0.9 }}>
                 Failed
               </div>
             </div>
@@ -398,7 +382,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
             >
               <div
                 style={{
-                  fontSize: '32px',
+                  fontSize: '64px',
                   fontWeight: '700',
                   marginBottom: '8px'
                 }}
@@ -407,7 +391,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
               </div>
               <div
                 style={{
-                  fontSize: '14px',
+                  fontSize: '28px',
                   fontWeight: '600',
                   opacity: 0.9
                 }}
@@ -566,12 +550,17 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
               borderRadius: '8px',
               border: '1px solid #e5e7eb'
             }}>
-              <strong>💡 Solution:</strong> Please edit the <code style={{ 
-                background: '#f3f4f6',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '11px'
-              }}>/public/check_requests.yaml</code> file with your Prometheus-style data.
+              <strong>💡 Solution:</strong> Please check:
+              <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                <li>Prometheus server is running on <code style={{ 
+                  background: '#f3f4f6',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '11px'
+                }}>http://localhost:9090</code></li>
+                <li>Cluster configuration files are properly set up</li>
+                <li>Device model YAML files contain valid check functions</li>
+              </ul>
             </div>
           </div>
         )}
@@ -671,15 +660,29 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
               fontSize: '14px',
               lineHeight: '1.5'
             }}>
-              Loading from <code style={{ 
+              Data loaded from <code style={{ 
                 background: '#dbeafe',
                 padding: '2px 6px',
                 borderRadius: '4px',
                 fontSize: '12px',
                 color: '#1e40af',
                 fontWeight: '600'
-              }}>/public/check_requests.yaml</code>. 
-              Edit this file to update the matrix data. Each domain can have different instances and check functions.
+              }}>/cluster.yml</code> and <code style={{ 
+                background: '#dbeafe',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: '#1e40af',
+                fontWeight: '600'
+              }}>/device_models/</code> via <code style={{ 
+                background: '#dbeafe',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: '#1e40af',
+                fontWeight: '600'
+              }}>Prometheus API</code>. 
+              Real-time monitoring data is fetched from your Prometheus server.
             </div>
           </div>
         )}

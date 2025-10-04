@@ -2,7 +2,7 @@ devices:
 - device_model: R6500
   instances: su1-gpu[1-32],su2-gpu[33-64],su3-gpu[65-96],su4-gpu[97-128]
 - device_model: CPU_SERVER
-  instances: cpu-compute-[1-14]
+  instances: cpu-compute-[1-14],localhost
 - device_model: XCM_SERVER
   instances: xcm-appliance-[1-2]
 - device_model: GPFS_SERVER
@@ -20,28 +20,3 @@ devices:
 - device_model: NGFW
   instances: dptech
 
-networks:
-- network: compute-network
-  nodes: 'node_guid_mapping.csv'
-  links: 'links.csv'
-- network: storage-network
-  nodes: 'storage_node_guid_mapping.csv'
-  links: 'storage_links.csv'
-
-# FIXME: move to a separated file later
-tenants:
-- tenant: tenant1
-  instances: su1-gpu[1-8]
-
-system:
-  epilogue:
-  - all_exporters_status_up_check
-  - count_healthy_instances_in_domain_groups GPU-Server:R6500|CPU-Server:CPU_SERVER|Control-Plane:control-plane|IB-Switches:MQM8700,MQM9790|Eth-Switches:RG-S6520-64CQ,RG-S6510-48VS,RG-S6000C-48GT
-  - count_healthy_gpus
-
-request_labels:
-- idc
-- project
-
-set_labels:
-  addr: Yiwu 2-6

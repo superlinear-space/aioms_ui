@@ -1,0 +1,41 @@
+hardware_model:
+  - cpu_count_check 2
+  - memory_stick_count_check 16
+  - memory_total_size_check 500
+  # - memory_speed_check 3200
+  - nvme_count_check 2
+  - nvme_disk_total_size_check 1920
+  - ethernet_count_check 2
+  - psu_count_check 2
+  - fan_count_check 6
+performance_model:
+  - cpu_util_check 0.90
+  - swap_usage_check 0.8
+  - memory_usage_check 0.90
+  - fs_usage_check 0.90
+exporters_constraints:
+  node_exporter:
+    port: 19100
+    capabilities:
+      - '--collector.cpu.info'
+  dcgm_exporter: 
+    port: 19400
+  idrac_exporter:
+    port: 9116
+    installed_host: 192.168.1.100
+  node_snmp_exporter:
+    port: 9117
+    installed_host: 192.168.1.100
+    modules:
+      - if_mib
+      - ruijie_switch
+  ipmi_exporter:
+    port: 9118
+    installed_host: 192.168.1.100
+  node_blackbox_exporter:
+    port: 9115
+    modules:
+      - icmp
+      - tcp_connect
+    capabilities:
+      - --config.file=/etc/blackbox_exporter/config.yml
