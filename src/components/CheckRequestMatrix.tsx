@@ -139,31 +139,36 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
             }}>
               Instance
             </div>
-            {displayCheckFunctions.map(cf => (
-              <div key={cf} style={{
-                padding: '6px 2px',
-                backgroundColor: '#f8fafc',
-                position: 'sticky',
-                top: 0,
-                zIndex: 2,
-                fontWeight: '600',
-                color: '#374151',
-                textAlign: 'center',
-                borderBottom: '2px solid #e2e8f0',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                fontSize: '8px',
-                lineHeight: '1.2',
-                wordBreak: 'break-word'
-              }}>
-                {cf.split('_').map((part, index) => (
-                  <React.Fragment key={index}>
-                    {part}
-                    {index < cf.split('_').length - 1 && '_'}
-                    {index < cf.split('_').length - 1 && <br />}
-                  </React.Fragment>
-                ))}
-              </div>
-            ))}
+            {displayCheckFunctions.map(cf => {
+              // 如果以 _check 结尾，去掉 _check
+              const displayName = cf.endsWith('_check') ? cf.slice(0, -6) : cf;
+              
+              return (
+                <div key={cf} style={{
+                  padding: '6px 2px',
+                  backgroundColor: '#f8fafc',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 2,
+                  fontWeight: '600',
+                  color: '#374151',
+                  textAlign: 'center',
+                  borderBottom: '2px solid #e2e8f0',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                  fontSize: '8px',
+                  lineHeight: '1.2',
+                  wordBreak: 'break-word'
+                }}>
+                  {displayName.split('_').map((part, index) => (
+                    <React.Fragment key={index}>
+                      {part}
+                      {index < displayName.split('_').length - 1 && '_'}
+                      {index < displayName.split('_').length - 1 && <br />}
+                    </React.Fragment>
+                  ))}
+                </div>
+              );
+            })}
 
             {/* 数据行 */}
             {displayInstances.map((instance, index) => {
@@ -236,6 +241,8 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                     }
 
                     const status = STATUS_MAP[checkRequest.value as keyof typeof STATUS_MAP];
+                    const inputValue = checkRequest.inputValue || '';
+                    
                     return (
                       <div key={`${instance}-${cf}`} style={{
                         padding: '2px',
@@ -246,12 +253,12 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}>
-                        <Tooltip title={`${cf}: ${status.label}`} placement="top">
+                        <Tooltip title={`${cf}: ${status.label}${inputValue ? ` | Value: ${inputValue}` : ''}`} placement="top">
                           <div
                             style={{
-                              width: '12px',
-                              height: '12px',
-                              borderRadius: '2px',
+                              minWidth: '24px',
+                              minHeight: '24px',
+                              borderRadius: '4px',
                               backgroundColor: status.bgColor,
                               border: `1px solid ${status.color}`,
                               cursor: 'pointer',
@@ -259,18 +266,35 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '6px',
+                              fontSize: '8px',
                               fontWeight: '600',
-                              color: status.color
+                              color: status.color,
+                              padding: '2px 4px',
+                              flexDirection: 'column',
+                              gap: '1px'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'scale(1.3)';
+                              e.currentTarget.style.transform = 'scale(1.2)';
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.transform = 'scale(1)';
                             }}
                           >
-                            {checkRequest.value === 0 ? '✓' : checkRequest.value === 1 ? '✗' : checkRequest.value === 2 ? '?' : ''}
+                            <div style={{ fontSize: '10px' }}>
+                              {checkRequest.value === 0 ? '✓' : checkRequest.value === 1 ? '✗' : checkRequest.value === 2 ? '?' : ''}
+                            </div>
+                            {inputValue && (
+                              <div style={{ 
+                                fontSize: '7px', 
+                                lineHeight: '1',
+                                maxWidth: '40px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {inputValue}
+                              </div>
+                            )}
                           </div>
                         </Tooltip>
                       </div>

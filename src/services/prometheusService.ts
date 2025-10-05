@@ -36,7 +36,7 @@ export interface PrometheusQueryResult {
 
 export interface MatrixData {
   domain: string;
-  instances: Record<string, Record<string, { value: number }>>;
+  instances: Record<string, Record<string, { value: number; inputValue?: string }>>;
 }
 
 export class PrometheusService {
@@ -137,6 +137,28 @@ export class PrometheusService {
     return checkFunctions;
   }
 
+
+  /**
+   * 查询Prometheus API获取CHECK_INPUT数据
+   */
+  static async queryPrometheusInput(domain: string, checkFunction: string): Promise<PrometheusQueryResult> {
+    const query = `CHECK_INPUT{domain="${domain}", cf="${checkFunction}"}`;
+    const url = `${this.PROMETHEUS_BASE_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Prometheus query failed: ${response.status}`);
+      }
+      const data = await response.json();
+      return data as PrometheusQueryResult;
+    } catch (error) {
+      console.error(`Error querying Prometheus INPUT for ${domain}/${checkFunction}:`, error);
+      throw error;
+    }
+  }
+
+
   /**
    * 查询Prometheus API获取监控数据
    */
@@ -189,13 +211,14 @@ export class PrometheusService {
         for (const instance of instances) {
           domainData.instances[instance] = {};
           for (const checkFunction of checkFunctions) {
-            domainData.instances[instance][checkFunction] = { value: 2 }; // 默认为unknown
+            domainData.instances[instance][checkFunction] = { value: 2, inputValue: '' }; // 默认为unknown
           }
         }
         
         // 6. 查询Prometheus获取实际数据
         for (const checkFunction of checkFunctions) {
           try {
+            // 查询CHECK状态
             const queryResult = await this.queryPrometheus(domain, checkFunction);
             
             if (queryResult.status === 'success' && queryResult.data.result) {
@@ -206,10 +229,46 @@ export class PrometheusService {
                 
                 // 如果hostname在instances中，更新对应的值
                 if (domainData.instances[hostname]) {
-                  domainData.instances[hostname][checkFunction] = { value };
+                  domainData.instances[hostname][checkFunction] = { value, inputValue: '' };
                 }
               }
             }
+
+            // 查询CHECK_INPUT数据
+            try {
+              const inputResult = await this.queryPrometheusInput(domain, checkFunction);
+              
+              if (inputResult.status === 'success' && inputResult.data.result) {
+                for (const result of inputResult.data.result) {
+                  const hostname = result.metric.hostname;
+                  const inputValue = result.value[1];
+                  
+                  // 解析输入值（可能是数字、字符串或列表）
+                  let displayValue = inputValue;
+                  try {
+                    // 尝试解析为JSON（处理列表情况）
+                    const parsed = JSON.parse(inputValue);
+                    if (Array.isArray(parsed)) {
+                      displayValue = parsed.join(', ');
+                    } else {
+                      displayValue = String(parsed);
+                    }
+                  } catch {
+                    // 如果不是JSON，直接使用字符串值
+                    displayValue = String(inputValue);
+                  }
+                  
+                  // 如果hostname在instances中，更新inputValue
+                  if (domainData.instances[hostname] && domainData.instances[hostname][checkFunction]) {
+                    domainData.instances[hostname][checkFunction].inputValue = displayValue;
+                  }
+                }
+              }
+            } catch (error) {
+              console.warn(`Failed to query INPUT for ${domain}/${checkFunction}:`, error);
+              // 继续处理，不影响CHECK状态显示
+            }
+
           } catch (error) {
             console.warn(`Failed to query ${domain}/${checkFunction}:`, error);
             // 保持默认的unknown状态
