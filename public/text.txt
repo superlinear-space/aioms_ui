@@ -1,0 +1,37 @@
+domains:
+- name: R6500
+  instances: 
+  - su2-gpu33
+  - su3-gpu65
+  check_functions: 
+  - cpu_count_check
+  - gpu_count_check
+  - memory_stick_count_check
+  - memory_total_size_check
+  - nvme_count_check
+  - nvme_disk_total_size_check
+  - ssd_count_check
+  - ssd_disk_total_size_check
+  - infiniband_count_check
+  - ethernet_count_check
+  - psu_count_check
+  - fan_count_check
+  - temp_sensor_count_check
+- name: CPU_SERVER
+  instances: cpu-compute-[1-14],localhost
+- name: XCM_SERVER
+  instances: xcm-appliance-[1-2]
+- name: GPFS_SERVER
+  instances: storage[01-07]
+- name: MQM9790
+  instances: compute-su1-leaf[01-08],compute-su2-leaf[09-16],compute-su3-leaf[17-24],compute-su4-leaf[25-32],compute-spine[01-16]
+- name: MQM8700
+  instances: storage-8700-leaf[01-12]
+- name: RG-S6520-64CQ
+  instances: mgmt-agg-a,mgmt-agg-b
+- name: RG-S6510-48VS
+  instances: service-[1-4]-a,service-[1-4]-b,service-agg-a,service-agg-b
+- name: RG-S6000C-48GT
+  instances: mgmt-access-[1-4]
+- name: NGFW
+  instances: dptech

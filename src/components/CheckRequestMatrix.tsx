@@ -119,7 +119,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
             gridTemplateColumns: `200px repeat(${displayCheckFunctions.length}, 1fr)`,
             gap: '1px',
             backgroundColor: '#e5e7eb',
-            minWidth: 'max-content',
+            width: '100%', // 使用100%宽度，让所有列挤在一起
             fontSize: '12px'
           }}>
             {/* 头部行 */}
@@ -141,7 +141,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
             </div>
             {displayCheckFunctions.map(cf => (
               <div key={cf} style={{
-                padding: '8px 4px',
+                padding: '6px 2px',
                 backgroundColor: '#f8fafc',
                 position: 'sticky',
                 top: 0,
@@ -151,11 +151,17 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                 textAlign: 'center',
                 borderBottom: '2px solid #e2e8f0',
                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                fontSize: '10px',
-                wordBreak: 'break-word',
-                lineHeight: '1.2'
+                fontSize: '8px',
+                lineHeight: '1.2',
+                wordBreak: 'break-word'
               }}>
-                {cf}
+                {cf.split('_').map((part, index) => (
+                  <React.Fragment key={index}>
+                    {part}
+                    {index < cf.split('_').length - 1 && '_'}
+                    {index < cf.split('_').length - 1 && <br />}
+                  </React.Fragment>
+                ))}
               </div>
             ))}
 
@@ -202,7 +208,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                     if (!checkRequest) {
                       return (
                         <div key={`${instance}-${cf}`} style={{
-                          padding: '4px',
+                          padding: '2px',
                           backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb',
                           textAlign: 'center',
                           borderBottom: '1px solid #e5e7eb',
@@ -211,15 +217,15 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                           justifyContent: 'center'
                         }}>
                           <div style={{
-                            width: '16px',
-                            height: '16px',
-                            borderRadius: '3px',
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '2px',
                             backgroundColor: '#f3f4f6',
                             border: '1px solid #e5e7eb',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '8px',
+                            fontSize: '6px',
                             fontWeight: '600',
                             color: '#9ca3af'
                           }}>
@@ -232,7 +238,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                     const status = STATUS_MAP[checkRequest.value as keyof typeof STATUS_MAP];
                     return (
                       <div key={`${instance}-${cf}`} style={{
-                        padding: '4px',
+                        padding: '2px',
                         backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb',
                         textAlign: 'center',
                         borderBottom: '1px solid #e5e7eb',
@@ -243,9 +249,9 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                         <Tooltip title={`${cf}: ${status.label}`} placement="top">
                           <div
                             style={{
-                              width: '16px',
-                              height: '16px',
-                              borderRadius: '3px',
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '2px',
                               backgroundColor: status.bgColor,
                               border: `1px solid ${status.color}`,
                               cursor: 'pointer',
@@ -253,12 +259,12 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '8px',
+                              fontSize: '6px',
                               fontWeight: '600',
                               color: status.color
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'scale(1.2)';
+                              e.currentTarget.style.transform = 'scale(1.3)';
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.transform = 'scale(1)';
