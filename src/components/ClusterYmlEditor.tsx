@@ -250,7 +250,67 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
     }
   };
 
-  // YAML Editor Functions
+  // Load Directory Function
+  const loadDirectory = async () => {
+    // Create a hidden file input with webkitdirectory
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.webkitdirectory = true;
+    input.style.display = 'none';
+    
+    input.onchange = async (event: any) => {
+      const files = event.target.files;
+      if (files.length === 0) {
+        document.body.removeChild(input);
+        return;
+      }
+      
+      // Find cluster.yml in the selected files
+      const clusterFile = Array.from(files).find((file: any) => 
+        file.name === 'cluster.yml'
+      );
+      
+      if (!clusterFile) {
+        message.error('cluster.yml not found in selected directory');
+        document.body.removeChild(input);
+        return;
+      }
+      
+      try {
+        const content = await clusterFile.text();
+        const parsed = parseYamlContent(content);
+        setYamlSections(parsed);
+        
+        // For webkitdirectory, we can't get the actual file system path
+        // But we can use the directory name and construct a reasonable path
+        const filePath = (clusterFile as any).webkitRelativePath;
+        const directoryName = filePath.includes('/') 
+          ? filePath.substring(0, filePath.indexOf('/'))
+          : 'selected-directory';
+        
+        // Use a path that matches the expected structure
+        const newModelDir = `/public/clusters/${directoryName}`;
+        setModelDir(newModelDir);
+        localStorage.setItem('clusterModelDir', newModelDir);
+        
+        message.success(`Cluster directory loaded successfully: ${newModelDir}`);
+        console.log('Loaded cluster configuration from:', newModelDir);
+        console.log('Available files:', Array.from(files).map((f: any) => f.webkitRelativePath));
+      } catch (error) {
+        message.error('Failed to read cluster.yml');
+        console.error('Error loading cluster.yml:', error);
+      }
+      
+      // Clean up
+      document.body.removeChild(input);
+    };
+    
+    // Add to DOM and trigger click
+    document.body.appendChild(input);
+    input.click();
+  };
+
+  // YAML Editor Functions (for initial load)
   const loadYamlFile = async () => {
     try {
       const yamlPath = `${modelDir}/cluster.yml`;
@@ -460,6 +520,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
         : type === 'network'
         ? `${modelDir}/networks/${name}.yml`
         : `${modelDir}/tenants/${name}.yml`;
+      console.log('Loading config from:', configPath);
       const response = await fetch(configPath);
       
       if (response.ok) {
@@ -994,7 +1055,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
   const setLabelHandlers = createSetLabelHandlers(setYamlSections, message);
 
   const handleDirectorySelect = () => {
-    setShowDirectoryModal(true);
+    loadDirectory();
   };
 
   const handleDirectoryConfirm = (newDir: string) => {
