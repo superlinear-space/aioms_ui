@@ -25,7 +25,7 @@ npm run server
 
 2. **Start Development Server**
    ```bash
-   npm run dev
+   VITE_PROMETHEUS_BASE_URL=http://localhost:9090 npm run dev
    ```
 
 3. **Access the Application**

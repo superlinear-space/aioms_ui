@@ -1,5 +1,5 @@
 import * as yaml from 'js-yaml';
-
+import { prometheusConfig } from '../config/prometheus';
 export interface ClusterDevice {
   device_model: string;
   instances: string;
@@ -40,7 +40,7 @@ export interface MatrixData {
 }
 
 export class PrometheusService {
-  private static readonly PROMETHEUS_BASE_URL = 'http://localhost:9090';
+  private static readonly PROMETHEUS_BASE_URL = prometheusConfig.baseUrl;
 
   /**
    * 解析cluster.yml文件获取设备配置
