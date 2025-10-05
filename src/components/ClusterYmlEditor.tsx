@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Input, Tabs, App, Collapse, Spin, Alert, InputNumber, Switch } from 'antd';
-import { InfoCircleOutlined, SaveOutlined } from '@ant-design/icons';
+import { Button, Input, Tabs, App, Collapse, Spin, Alert, InputNumber, Switch, Modal } from 'antd';
+import { InfoCircleOutlined, SaveOutlined, EditOutlined } from '@ant-design/icons';
 import * as yaml from 'js-yaml';
 import type { YamlSections } from '../types/clusterTypes';
 import { prometheusService } from '../services/prometheusService';
@@ -194,6 +194,15 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
     output_dir: `${modelDir}/prometheus_rules`
   });
   
+  // File editor modal state
+  const [showFileEditorModal, setShowFileEditorModal] = useState<boolean>(false);
+  const [fileEditorConfig, setFileEditorConfig] = useState<{
+    filePath: string;
+    fileContent: string;
+    fileType: 'nodes' | 'links';
+    networkIndex: number;
+  } | null>(null);
+  
   // Remove the activeEpilogueTab state since we won't need it anymore
   // const [activeEpilogueTab, setActiveEpilogueTab] = useState<string>('0'); // Remove this line
 
@@ -368,6 +377,35 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
           }
         }
       }
+
+      // 4) Write tenant configuration YAMLs (edited > loaded > fetched from modelDir)
+      const tenantsDir = await dirHandle.getDirectoryHandle('tenants', { create: true });
+      for (const t of yamlSections.tenants) {
+        const tenantName = t.tenant?.trim();
+        if (!tenantName) continue;
+
+        let content: string | null = null;
+        const edited = editingConfigs[tenantName];
+        if (edited) {
+          content = yaml.dump(edited);
+        } else {
+          const loaded = nameConfigs[tenantName];
+          if (loaded) {
+            content = yaml.dump(loaded);
+          } else {
+            try {
+              const res = await fetch(`${modelDir}/tenants/${tenantName}.yml`, { cache: 'no-store' });
+              if (res.ok) content = await res.text();
+            } catch {}
+          }
+        }
+
+        if (content) {
+          await writeTextFile(tenantsDir, `${tenantName}.yml`, content);
+        } else {
+          message.warning(`Skipped saving tenant: ${tenantName}.yml (no config found)`);
+        }
+      }
   
       message.success('Configuration saved to selected directory');
     } catch (err: any) {
@@ -456,6 +494,67 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
       message.error(`Failed to save ${type} configuration for ${name}`);
     } finally {
       setSavingConfigs(prev => ({ ...prev, [name]: false }));
+    }
+  };
+
+  // Function to open file editor modal
+  const openFileEditor = async (filePath: string, fileType: 'nodes' | 'links', networkIndex: number) => {
+    if (!filePath.trim()) {
+      message.warning('Please enter a file name first');
+      return;
+    }
+
+    try {
+      setLoadingConfigs(prev => ({ ...prev, [filePath]: true }));
+      
+      // Try to fetch the file content
+      const response = await fetch(filePath, { cache: 'no-store' });
+      
+      let fileContent = '';
+      if (response.ok) {
+        fileContent = await response.text();
+      } else {
+        // If file doesn't exist, create empty content
+        fileContent = fileType === 'nodes' 
+          ? '# Node GUID Mapping\n# Format: node_id,guid\n'
+          : '# Network Links\n# Format: source,destination,bandwidth\n';
+      }
+
+      setFileEditorConfig({
+        filePath,
+        fileContent,
+        fileType,
+        networkIndex
+      });
+      setShowFileEditorModal(true);
+      
+    } catch (error) {
+      console.error('Error loading file:', error);
+      message.error(`Failed to load ${filePath}`);
+    } finally {
+      setLoadingConfigs(prev => ({ ...prev, [filePath]: false }));
+    }
+  };
+
+  // Function to save file content from modal
+  const saveFileContent = async () => {
+    if (!fileEditorConfig) return;
+
+    try {
+      // In a real application, this would save to the server
+      // For now, we'll update the local state to simulate saving
+      setDeviceModelConfigs(prev => ({ 
+        ...prev, 
+        [fileEditorConfig.filePath]: fileEditorConfig.fileContent 
+      }));
+      
+      message.success(`${fileEditorConfig.filePath} saved successfully!`);
+      setShowFileEditorModal(false);
+      setFileEditorConfig(null);
+      
+    } catch (error) {
+      console.error('Error saving file:', error);
+      message.error(`Failed to save ${fileEditorConfig.filePath}`);
     }
   };
 
@@ -1355,16 +1454,34 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                   }}>
                     Nodes File
                   </label>
-                  <Input
-                    value={network.nodes}
-                    onChange={(e) => networkHandlers.handleChange(index, 'nodes', e.target.value)}
-                    placeholder="e.g., node_guid_mapping.csv"
-                    style={{ 
-                      height: '40px',
-                      borderRadius: '8px',
-                      border: '2px solid #d1d5db'
-                    }}
-                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Input
+                      value={network.nodes}
+                      onChange={(e) => networkHandlers.handleChange(index, 'nodes', e.target.value)}
+                      placeholder="e.g., node_guid_mapping.csv"
+                      style={{ 
+                        height: '40px',
+                        borderRadius: '8px',
+                        border: '2px solid #d1d5db',
+                        flex: 1
+                      }}
+                    />
+                    <Button
+                      type="default"
+                      icon={<EditOutlined />}
+                      onClick={() => openFileEditor(`${modelDir}/${network.nodes}`, 'nodes', index)}
+                      loading={loadingConfigs[network.nodes]}
+                      style={{
+                        height: '40px',
+                        borderRadius: '8px',
+                        border: '2px solid #d1d5db',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Edit Nodes File Content"
+                    />
+                  </div>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ 
@@ -1376,16 +1493,34 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
                   }}>
                     Links File
                   </label>
-                  <Input
-                    value={network.links}
-                    onChange={(e) => networkHandlers.handleChange(index, 'links', e.target.value)}
-                    placeholder="e.g., links.csv"
-                    style={{ 
-                      height: '40px',
-                      borderRadius: '8px',
-                      border: '2px solid #d1d5db'
-                    }}
-                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Input
+                      value={network.links}
+                      onChange={(e) => networkHandlers.handleChange(index, 'links', e.target.value)}
+                      placeholder="e.g., links.csv"
+                      style={{ 
+                        height: '40px',
+                        borderRadius: '8px',
+                        border: '2px solid #d1d5db',
+                        flex: 1
+                      }}
+                    />
+                    <Button
+                      type="default"
+                      icon={<EditOutlined />}
+                      onClick={() => openFileEditor(`${modelDir}/${network.links}`, 'links', index)}
+                      loading={loadingConfigs[network.links]}
+                      style={{
+                        height: '40px',
+                        borderRadius: '8px',
+                        border: '2px solid #d1d5db',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Edit Links File Content"
+                    />
+                  </div>
                 </div>
               </div>
               
@@ -2053,6 +2188,73 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
           </div>
         </div>
       )}
+
+      {/* File Editor Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <EditOutlined />
+            <span>Edit File</span>
+          </div>
+        }
+        open={showFileEditorModal}
+        onOk={saveFileContent}
+        onCancel={() => {
+          setShowFileEditorModal(false);
+          setFileEditorConfig(null);
+        }}
+        width={800}
+        okText="Save File"
+        cancelText="Cancel"
+        style={{ top: 20 }}
+        bodyStyle={{ padding: '24px' }}
+      >
+        {fileEditorConfig && (
+          <div>
+            <div style={{ 
+              marginBottom: '16px', 
+              padding: '12px', 
+              backgroundColor: '#f8fafc', 
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+                File: {fileEditorConfig.filePath}
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ 
+                display: 'block', 
+                fontSize: '14px', 
+                fontWeight: '600', 
+                color: '#374151',
+                marginBottom: '8px' 
+              }}>
+                File Content
+              </label>
+              <Input.TextArea
+                value={fileEditorConfig.fileContent}
+                onChange={(e) => setFileEditorConfig(prev => 
+                  prev ? { ...prev, fileContent: e.target.value } : null
+                )}
+                placeholder={
+                  fileEditorConfig.fileType === 'nodes' 
+                    ? '# Node GUID Mapping\n# Format: node_id,guid\nnode1,guid1\nnode2,guid2'
+                    : '# Network Links\n# Format: source,destination,bandwidth\nnode1,node2,10G\nnode2,node3,1G'
+                }
+                rows={15}
+                style={{
+                  fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                  fontSize: '13px',
+                  lineHeight: '1.4'
+                }}
+              />
+            </div>
+            
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
