@@ -44,13 +44,3 @@ export interface YamlSections {
   request_labels: string[];
   set_labels: Record<string, string>;
 }
-
-// Default export for all types
-export default {
-  DeviceGroup,
-  Network,
-  Tenant,
-  System,
-  Sections,
-  YamlSections
-};

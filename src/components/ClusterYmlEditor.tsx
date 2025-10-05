@@ -168,7 +168,15 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
     // Try to get from URL params first, then localStorage, then default
     const urlDir = searchParams.get('clusterDir');
     const savedDir = localStorage.getItem('clusterModelDir');
-    return urlDir || savedDir || "./";
+    const dirPath = urlDir || savedDir || "./";
+    
+    // Convert to absolute path
+    if (dirPath.startsWith('./') || dirPath.startsWith('../') || !dirPath.startsWith('/')) {
+      // For relative paths, we'll use the current working directory as base
+      // In a browser environment, we'll use the public directory as the base
+      return new URL(dirPath, window.location.origin).pathname;
+    }
+    return dirPath;
   });
   const [showDirectoryModal, setShowDirectoryModal] = useState<boolean>(false);
 
@@ -918,8 +926,8 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
 
   const handleOpenPromRulesModal = () => {
     setPromRulesConfig({
-      cluster_dir: configData.DEFAULT_CLUSTER_DIR,
-      output_dir: `${modelDir}/prometheus_rules`
+      cluster_dir: `${modelDir}`,
+      output_dir: `${modelDir}/output`
     });
     setShowPromRulesModal(true);
   };
@@ -1868,8 +1876,16 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
               </label>
               <Input
                 value={modelDir}
-                onChange={(e) => setModelDir(e.target.value)}
-                placeholder="e.g., ./public/clusters/yiwu2-6"
+                onChange={(e) => {
+                  const newPath = e.target.value;
+                  // Convert to absolute path
+                  if (newPath.startsWith('./') || newPath.startsWith('../') || !newPath.startsWith('/')) {
+                    setModelDir(new URL(newPath, window.location.origin).pathname);
+                  } else {
+                    setModelDir(newPath);
+                  }
+                }}
+                placeholder="e.g., /Users/yliu/porjects/aioms_ui/public/clusters/yiwu2-6"
                 style={{ 
                   height: '40px',
                   borderRadius: '8px',

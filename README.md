@@ -11,7 +11,8 @@ A modern React-based dashboard for managing cluster configurations with support 
 
 ### Backend setup
 cd server
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt or
+uv pip install -r requirements
 npm run server
 
 
