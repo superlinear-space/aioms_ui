@@ -28,6 +28,11 @@ npm run server
    VITE_PROMETHEUS_BASE_URL=http://localhost:9090 npm run dev
    ```
 
+   ```bash
+   if deployed on  remote server
+   VITE_PROMETHEUS_BASE_URL=http://localhost:9090 npm run dev -- --host 0.0.0.0
+   ```
+
 3. **Access the Application**
    - Open your browser and navigate to `http://localhost:5173`
    - The dashboard will load with a professional UI for cluster management
