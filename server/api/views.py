@@ -9,7 +9,8 @@ from datetime import datetime
 from pathlib import Path
 
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -238,3 +239,16 @@ def check_superalarm(request):
             'error': str(e),
             'configured_path': settings.SUPERALARM_PATH
         })
+
+
+def avue_index(request):
+    """Serve the avue index.html file"""
+    avue_path = Path(settings.BASE_DIR) / 'static' / 'avue' / 'index.html'
+    
+    if not avue_path.exists():
+        return HttpResponse('Avue index.html not found', status=404)
+    
+    with open(avue_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    return HttpResponse(content, content_type='text/html')

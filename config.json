@@ -10,5 +10,13 @@
   "DEBUG_MODE":true,
   "LOG_LEVEL":"INFO",
   "PORT":15000,
-  "FRONTEND_PORT":5173
+  "FRONTEND_PORT":5173,
+  "DB_NAME": "aioms_db",
+  "DB_USER": "root",
+  "DB_PASSWORD": "",
+  "DB_HOST": "localhost",
+  "DB_PORT": "3306",
+  "PROMETHEUS_ADDRESS": "http://10.0.103.118:19090/pms",
+  "PROMETHEUS_USERNAME": "admin",
+  "PROMETHEUS_PASSWORD": "admin"
 }

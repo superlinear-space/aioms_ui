@@ -6,6 +6,13 @@ import os
 import json
 from pathlib import Path
 
+# Use PyMySQL as MySQL client if mysqlclient is not available
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -32,6 +39,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'api',
+    'monitor',
 ]
 
 MIDDLEWARE = [
@@ -69,8 +77,16 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': CONFIG.get('DB_NAME', 'aioms_db'),
+        'USER': CONFIG.get('DB_USER', 'root'),
+        'PASSWORD': CONFIG.get('DB_PASSWORD', ''),
+        'HOST': CONFIG.get('DB_HOST', 'localhost'),
+        'PORT': CONFIG.get('DB_PORT', '3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 
@@ -102,6 +118,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -115,6 +134,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 1000,  # or whatever size you want
 }
 
 # CORS settings
@@ -163,3 +184,7 @@ LOGGING = {
         'level': LOG_LEVEL,
     },
 }
+
+PROMETHEUS_ADDRESS = CONFIG.get("PROMETHEUS_ADDRESS", "http://localhost:9090")
+PROMETHEUS_USERNAME = CONFIG.get("PROMETHEUS_USERNAME", "admin")
+PROMETHEUS_PASSWORD = CONFIG.get("PROMETHEUS_PASSWORD", "admin")
