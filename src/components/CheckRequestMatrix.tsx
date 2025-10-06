@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Spin, Button, Tooltip, Row, Col, Select, Input } from 'antd';
 import { ReloadOutlined, FilterOutlined } from '@ant-design/icons';
 import { PrometheusService, type MatrixData } from '../services/prometheusService';
@@ -25,7 +25,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
   const [error, setError] = useState<string>('');
 
   // 加载数据
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -40,11 +40,19 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
+
+  // 周期性刷新：每10秒重新拉取一次数据
+  useEffect(() => {
+    const id = setInterval(() => {
+      loadData();
+    }, 10000);
+    return () => clearInterval(id);
+  }, [loadData]);
 
   // 当加载到数据后，若未选择domain，则默认选择第一个domain
   useEffect(() => {
