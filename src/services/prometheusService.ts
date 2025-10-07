@@ -65,13 +65,21 @@ export class PrometheusService {
    */
   static async loadDeviceModelConfig(deviceModel: string): Promise<DeviceModelCheck> {
     try {
-      const response = await fetch(`/device_models/${deviceModel}.yml`);
+      // 优先尝试 .yml，其次尝试 .yaml，兼容不同扩展名
+      const ymlUrl = `/device_models/${deviceModel}.yml`;
+      const yamlUrl = `/device_models/${deviceModel}.yaml`;
+
+      let response = await fetch(ymlUrl);
       if (!response.ok) {
-        throw new Error(`Failed to load ${deviceModel}.yml: ${response.status}`);
+        response = await fetch(yamlUrl);
       }
+      if (!response.ok) {
+        throw new Error(`Failed to load device model file: tried ${ymlUrl} and ${yamlUrl}, status ${response.status}`);
+      }
+
       const content = await response.text();
       const parsed = yaml.load(content) as DeviceModelCheck;
-      return parsed;
+      return parsed || {} as DeviceModelCheck;
     } catch (error) {
       console.error(`Error loading device model config for ${deviceModel}:`, error);
       throw error;
@@ -180,28 +188,119 @@ export class PrometheusService {
   }
 
   /**
+   * 一次性查询所有CHECK数据（不带过滤标签）
+   */
+  static async queryAllChecks(): Promise<PrometheusQueryResult> {
+    const query = `CHECK`;
+    const url = `${this.PROMETHEUS_BASE_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Prometheus query failed: ${response.status}`);
+      }
+      const data = await response.json();
+      return data as PrometheusQueryResult;
+    } catch (error) {
+      console.error(`Error querying Prometheus for all CHECK:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 一次性查询所有CHECK_INPUT数据（不带过滤标签）
+   */
+  static async queryAllInputs(): Promise<PrometheusQueryResult> {
+    const query = `CHECK_INPUT`;
+    const url = `${this.PROMETHEUS_BASE_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Prometheus query failed: ${response.status}`);
+      }
+      const data = await response.json();
+      return data as PrometheusQueryResult;
+    } catch (error) {
+      console.error(`Error querying Prometheus for all CHECK_INPUT:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * 构建完整的矩阵数据
    */
   static async buildMatrixData(): Promise<MatrixData[]> {
     try {
       // 1. 加载cluster配置
       const clusterConfig = await this.loadClusterConfig();
-      
+      // 2. 预取所有CHECK与CHECK_INPUT数据
+      let allChecks: PrometheusQueryResult | null = null;
+      let allInputs: PrometheusQueryResult | null = null;
+      try {
+        allChecks = await this.queryAllChecks();
+      } catch (e) {
+        console.warn('Failed to query all CHECK metrics:', e);
+      }
+      try {
+        allInputs = await this.queryAllInputs();
+      } catch (e) {
+        console.warn('Failed to query all CHECK_INPUT metrics:', e);
+      }
+
+      // 3. 将查询结果构建为快速索引
+      const checksMap: Record<string, Record<string, Record<string, number>>> = {};
+      if (allChecks?.status === 'success' && allChecks.data?.result) {
+        for (const item of allChecks.data.result) {
+          const domain = item.metric.domain;
+          const hostname = item.metric.hostname;
+          const cf = item.metric.cf;
+          const value = parseInt(item.value[1], 10);
+          if (!domain || !hostname || !cf || Number.isNaN(value)) continue;
+          checksMap[domain] = checksMap[domain] || {};
+          checksMap[domain][hostname] = checksMap[domain][hostname] || {};
+          checksMap[domain][hostname][cf] = value;
+        }
+      }
+
+      const inputsMap: Record<string, Record<string, Record<string, string>>> = {};
+      if (allInputs?.status === 'success' && allInputs.data?.result) {
+        for (const item of allInputs.data.result) {
+          const domain = item.metric.domain;
+          const hostname = item.metric.hostname;
+          const cf = item.metric.cf;
+          const raw = item.value[1];
+          if (!domain || !hostname || !cf) continue;
+          let displayValue = raw as unknown as string;
+          try {
+            const parsed = JSON.parse(String(raw));
+            if (Array.isArray(parsed)) {
+              displayValue = parsed.join(', ');
+            } else {
+              displayValue = String(parsed);
+            }
+          } catch {
+            displayValue = String(raw);
+          }
+          inputsMap[domain] = inputsMap[domain] || {};
+          inputsMap[domain][hostname] = inputsMap[domain][hostname] || {};
+          inputsMap[domain][hostname][cf] = displayValue;
+        }
+      }
+
       const matrixData: MatrixData[] = [];
       
-      // 2. 处理每个device model
+      // 4. 处理每个device model
       for (const device of clusterConfig.devices) {
         const domain = device.device_model;
         const instancesStr = device.instances;
         
-        // 3. 展开instances
+        // 展开instances
         const instances = this.expandInstances(instancesStr);
         
-        // 4. 加载device model配置获取check functions
+        // 加载device model配置获取check functions
         const deviceModelConfig = await this.loadDeviceModelConfig(domain);
         const checkFunctions = this.extractCheckFunctions(deviceModelConfig);
         
-        // 5. 初始化矩阵数据结构
+        // 初始化矩阵数据结构
         const domainData: MatrixData = {
           domain,
           instances: {}
@@ -214,64 +313,24 @@ export class PrometheusService {
             domainData.instances[instance][checkFunction] = { value: 2, inputValue: '' }; // 默认为unknown
           }
         }
-        
-        // 6. 查询Prometheus获取实际数据
-        for (const checkFunction of checkFunctions) {
-          try {
-            // 查询CHECK状态
-            const queryResult = await this.queryPrometheus(domain, checkFunction);
-            
-            if (queryResult.status === 'success' && queryResult.data.result) {
-              // 处理查询结果
-              for (const result of queryResult.data.result) {
-                const hostname = result.metric.hostname;
-                const value = parseInt(result.value[1], 10);
-                
-                // 如果hostname在instances中，更新对应的值
-                if (domainData.instances[hostname]) {
-                  domainData.instances[hostname][checkFunction] = { value, inputValue: '' };
-                }
-              }
-            }
 
-            // 查询CHECK_INPUT数据
-            try {
-              const inputResult = await this.queryPrometheusInput(domain, checkFunction);
-              
-              if (inputResult.status === 'success' && inputResult.data.result) {
-                for (const result of inputResult.data.result) {
-                  const hostname = result.metric.hostname;
-                  const inputValue = result.value[1];
-                  
-                  // 解析输入值（可能是数字、字符串或列表）
-                  let displayValue = inputValue;
-                  try {
-                    // 尝试解析为JSON（处理列表情况）
-                    const parsed = JSON.parse(inputValue);
-                    if (Array.isArray(parsed)) {
-                      displayValue = parsed.join(', ');
-                    } else {
-                      displayValue = String(parsed);
-                    }
-                  } catch {
-                    // 如果不是JSON，直接使用字符串值
-                    displayValue = String(inputValue);
-                  }
-                  
-                  // 如果hostname在instances中，更新inputValue
-                  if (domainData.instances[hostname] && domainData.instances[hostname][checkFunction]) {
-                    domainData.instances[hostname][checkFunction].inputValue = displayValue;
-                  }
-                }
-              }
-            } catch (error) {
-              console.warn(`Failed to query INPUT for ${domain}/${checkFunction}:`, error);
-              // 继续处理，不影响CHECK状态显示
+        // 使用批量查询结果填充当前domain的数据
+        const domainChecks = checksMap[domain] || {};
+        const domainInputs = inputsMap[domain] || {};
+        for (const [hostname, cfToValue] of Object.entries(domainChecks)) {
+          if (!domainData.instances[hostname]) continue;
+          for (const [cf, value] of Object.entries(cfToValue)) {
+            if (domainData.instances[hostname][cf] !== undefined) {
+              domainData.instances[hostname][cf].value = value as number;
             }
-
-          } catch (error) {
-            console.warn(`Failed to query ${domain}/${checkFunction}:`, error);
-            // 保持默认的unknown状态
+          }
+        }
+        for (const [hostname, cfToInput] of Object.entries(domainInputs)) {
+          if (!domainData.instances[hostname]) continue;
+          for (const [cf, inputValue] of Object.entries(cfToInput)) {
+            if (domainData.instances[hostname][cf] !== undefined) {
+              domainData.instances[hostname][cf].inputValue = inputValue as string;
+            }
           }
         }
         

@@ -50,7 +50,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
   useEffect(() => {
     const id = setInterval(() => {
       loadData();
-    }, 10000);
+    }, 60000);
     return () => clearInterval(id);
   }, [loadData]);
 
