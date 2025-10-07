@@ -84,7 +84,13 @@ const Dashboard: React.FC = () => {
         );
       case 'menu3':
         return (
-          <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
+          <div style={{ 
+            padding: '32px', 
+            maxWidth: '70%',        // 从 1400px 改为 100%，使用全部宽度
+            margin: '0 auto',
+            transform: 'scale(1.2)', // 整体放大 1.2 倍
+            transformOrigin: 'top center' // 从顶部中心开始放大
+          }}>
             <CheckRequestMatrix />
           </div>
         );

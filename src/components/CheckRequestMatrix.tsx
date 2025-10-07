@@ -163,7 +163,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
               textAlign: 'left',
               borderBottom: '2px solid #e2e8f0',
               boxShadow: '2px 0 4px rgba(0, 0, 0, 0.1)',
-              fontSize: '11px'
+              fontSize: '14px'
             }}>
               Instance
             </div>
@@ -173,7 +173,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
               
               return (
                 <div key={cf} style={{
-                  padding: '6px 2px',
+                  padding: '8px 4px',
                   backgroundColor: '#f8fafc',
                   position: 'sticky',
                   top: 0,
@@ -183,7 +183,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                   textAlign: 'center',
                   borderBottom: '2px solid #e2e8f0',
                   boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                  fontSize: '8px',
+                  fontSize: '10px',
                   lineHeight: '1.2',
                   wordBreak: 'break-word'
                 }}>
@@ -214,7 +214,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '11px'
+                    fontSize: '14px'
                   }}>
                     <div style={{
                       width: '6px',
@@ -226,7 +226,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                     <span style={{ 
                       fontWeight: '600', 
                       color: '#1e293b',
-                      fontSize: '11px',
+                      fontSize: '14px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
@@ -250,15 +250,15 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                           justifyContent: 'center'
                         }}>
                           <div style={{
-                            width: '12px',
-                            height: '12px',
+                            width: '18px',
+                            height: '18px',
                             borderRadius: '2px',
                             backgroundColor: '#f3f4f6',
                             border: '1px solid #e5e7eb',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '6px',
+                            fontSize: '10px',
                             fontWeight: '600',
                             color: '#9ca3af'
                           }}>
@@ -284,8 +284,8 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                         <Tooltip title={`${cf}: ${status.label}${inputValue ? ` | Value: ${inputValue}` : ''}`} placement="top">
                           <div
                             style={{
-                              minWidth: '24px',
-                              minHeight: '24px',
+                              minWidth: '32px',
+                              minHeight: '32px',
                               borderRadius: '4px',
                               backgroundColor: status.bgColor,
                               border: `1px solid ${status.color}`,
@@ -294,12 +294,12 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '8px',
+                              fontSize: '12px',
                               fontWeight: '600',
                               color: status.color,
-                              padding: '2px 4px',
+                              padding: '4px 6px',
                               flexDirection: 'column',
-                              gap: '1px'
+                              gap: '2px'
                             }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.transform = 'scale(1.2)';
@@ -308,14 +308,14 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                               e.currentTarget.style.transform = 'scale(1)';
                             }}
                           >
-                            <div style={{ fontSize: '10px' }}>
+                            <div style={{ fontSize: '14px' }}>
                               {checkRequest.value === 0 ? '✓' : checkRequest.value === 1 ? '✗' : checkRequest.value === 2 ? '?' : ''}
                             </div>
                             {inputValue && (
                               <div style={{ 
-                                fontSize: '7px', 
+                                fontSize: '9px', 
                                 lineHeight: '1',
-                                maxWidth: '40px',
+                                maxWidth: '50px',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap'
@@ -356,7 +356,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
   })();
 
   return (
-    <div className={className}>
+    <div className={className} style={{ fontSize: '120%' }}>
       <div style={{ 
         background: '#ffffff',
         borderRadius: '16px',
@@ -499,98 +499,156 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
         </Row>
 
         {/* 过滤器 */}
-        <div style={{ 
-          background: '#f8fafc',
-          borderRadius: '12px',
-          padding: '20px',
-          marginBottom: '24px',
-          border: '1px solid #e2e8f0'
+<div style={{ 
+  background: '#f8fafc',
+  borderRadius: '12px',
+  padding: '20px',
+  marginBottom: '24px',
+  border: '1px solid #e2e8f0'
+}}>
+  <h4 style={{ 
+    margin: '0 0 16px 0', 
+    color: '#1e293b',
+    fontSize: '16px',
+    fontWeight: '600'
+  }}>
+    🔍 Filters
+  </h4>
+  <Row gutter={16}>
+    <Col span={6}>
+      <div style={{ marginBottom: '8px' }}>
+        <label style={{ 
+          display: 'block', 
+          fontSize: '14px', 
+          fontWeight: '600', 
+          color: '#374151',
+          marginBottom: '8px' 
         }}>
-          <h4 style={{ 
-            margin: '0 0 16px 0', 
-            color: '#1e293b',
-            fontSize: '16px',
-            fontWeight: '600'
-          }}>
-            🔍 Filters
-          </h4>
-          <Row gutter={16}>
-            <Col span={8}>
-              <div style={{ marginBottom: '8px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151',
-                  marginBottom: '8px' 
-                }}>
-                  Domain
-                </label>
-                <Select
-                  placeholder="Select Domain"
-                  value={selectedDomain}
-                  onChange={setSelectedDomain}
-                  style={{ width: '100%' }}
-                  size="large"
-                >
-                  {matrixData.map(domain => (
-                    <Option key={domain.domain} value={domain.domain}>
-                      {domain.domain}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-            </Col>
-            <Col span={8}>
-              <div style={{ marginBottom: '8px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151',
-                  marginBottom: '8px' 
-                }}>
-                  Instance
-                </label>
-                <Input
-                  placeholder="Search Instance"
-                  value={searchInstance}
-                  onChange={(e) => setSearchInstance(e.target.value)}
-                  prefix={<FilterOutlined />}
-                  size="large"
-                  style={{ 
-                    borderRadius: '8px',
-                    border: '2px solid #d1d5db'
-                  }}
-                />
-              </div>
-            </Col>
-            <Col span={8}>
-              <div style={{ marginBottom: '8px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
-                  color: '#374151',
-                  marginBottom: '8px' 
-                }}>
-                  Check Function
-                </label>
-                <Input
-                  placeholder="Search Check Function"
-                  value={searchCheckFunction}
-                  onChange={(e) => setSearchCheckFunction(e.target.value)}
-                  prefix={<FilterOutlined />}
-                  size="large"
-                  style={{ 
-                    borderRadius: '8px',
-                    border: '2px solid #d1d5db'
-                  }}
-                />
-              </div>
-            </Col>
-          </Row>
+          Domain
+        </label>
+        <Select
+          placeholder="Select Domain"
+          value={selectedDomain}
+          onChange={setSelectedDomain}
+          style={{ width: '100%' }}
+          size="large"
+        >
+          {matrixData.map(domain => (
+            <Option key={domain.domain} value={domain.domain}>
+              {domain.domain}
+            </Option>
+          ))}
+        </Select>
+      </div>
+    </Col>
+    <Col span={6}>
+      <div style={{ marginBottom: '8px' }}>
+        <label style={{ 
+          display: 'block', 
+          fontSize: '14px', 
+          fontWeight: '600', 
+          color: '#374151',
+          marginBottom: '8px' 
+        }}>
+          Instance
+        </label>
+        <Input
+          placeholder="Search Instance"
+          value={searchInstance}
+          onChange={(e) => setSearchInstance(e.target.value)}
+          prefix={<FilterOutlined />}
+          size="large"
+          style={{ 
+            borderRadius: '8px',
+            border: '2px solid #d1d5db'
+          }}
+        />
+      </div>
+    </Col>
+    <Col span={6}>
+      <div style={{ marginBottom: '8px' }}>
+        <label style={{ 
+          display: 'block', 
+          fontSize: '14px', 
+          fontWeight: '600', 
+          color: '#374151',
+          marginBottom: '8px' 
+        }}>
+          Check Function
+        </label>
+        <Input
+          placeholder="Search Check Function"
+          value={searchCheckFunction}
+          onChange={(e) => setSearchCheckFunction(e.target.value)}
+          prefix={<FilterOutlined />}
+          size="large"
+          style={{ 
+            borderRadius: '8px',
+            border: '2px solid #d1d5db'
+          }}
+        />
+      </div>
+    </Col>
+    <Col span={6}>
+      <div style={{ marginBottom: '8px' }}>
+        <label style={{ 
+          display: 'block', 
+          fontSize: '14px', 
+          fontWeight: '600', 
+          color: '#374151',
+          marginBottom: '8px' 
+        }}>
+          Status Filter
+        </label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button
+            type={statusFilter === 'healthy' ? 'primary' : 'default'}
+            onClick={() => setStatusFilter(statusFilter === 'healthy' ? 'all' : 'healthy')}
+            size="large"
+            style={{
+              borderColor: STATUS_MAP[0].color,
+              color: statusFilter === 'healthy' ? 'white' : STATUS_MAP[0].color,
+              background: statusFilter === 'healthy' ? STATUS_MAP[0].color : 'white',
+              borderRadius: '8px',
+              flex: 1
+            }}
+          >
+            ✓
+          </Button>
+          <Button
+            type={statusFilter === 'failed' ? 'primary' : 'default'}
+            onClick={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
+            size="large"
+            style={{
+              borderColor: STATUS_MAP[1].color,
+              color: statusFilter === 'failed' ? 'white' : STATUS_MAP[1].color,
+              background: statusFilter === 'failed' ? STATUS_MAP[1].color : 'white',
+              borderRadius: '8px',
+              flex: 1
+            }}
+          >
+            ✗
+          </Button>
+          <Button
+            type={statusFilter === 'unknown' ? 'primary' : 'default'}
+            onClick={() => setStatusFilter(statusFilter === 'unknown' ? 'all' : 'unknown')}
+            size="large"
+            style={{
+              borderColor: STATUS_MAP[2].color,
+              color: statusFilter === 'unknown' ? 'white' : STATUS_MAP[2].color,
+              background: statusFilter === 'unknown' ? STATUS_MAP[2].color : 'white',
+              borderRadius: '8px',
+              flex: 1
+            }}
+          >
+            ?
+          </Button>
         </div>
+      </div>
+    </Col>
+  </Row>
+</div>
+
 
         {/* 错误显示 */}
         {error && (
@@ -661,131 +719,6 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
           </div>
         )}
 
-        {/* 状态图例与过滤 */}
-        <div style={{ 
-          marginBottom: '24px', 
-          padding: '20px', 
-          backgroundColor: '#f8fafc', 
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0'
-        }}>
-          <h4 style={{ 
-            margin: '0 0 16px 0', 
-            color: '#1e293b',
-            fontSize: '16px',
-            fontWeight: '600'
-          }}>
-            📊 Status Legend
-          </h4>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            <Button
-              type={statusFilter === 'healthy' ? 'primary' : 'default'}
-              onClick={() => setStatusFilter(statusFilter === 'healthy' ? 'all' : 'healthy')}
-              style={{
-                borderColor: STATUS_MAP[0].color,
-                color: statusFilter === 'healthy' ? 'white' : STATUS_MAP[0].color,
-                background: statusFilter === 'healthy' ? STATUS_MAP[0].color : 'white',
-                borderRadius: '8px'
-              }}
-            >
-              Healthy
-            </Button>
-            <Button
-              type={statusFilter === 'failed' ? 'primary' : 'default'}
-              onClick={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
-              style={{
-                borderColor: STATUS_MAP[1].color,
-                color: statusFilter === 'failed' ? 'white' : STATUS_MAP[1].color,
-                background: statusFilter === 'failed' ? STATUS_MAP[1].color : 'white',
-                borderRadius: '8px'
-              }}
-            >
-              Failed
-            </Button>
-            <Button
-              type={statusFilter === 'unknown' ? 'primary' : 'default'}
-              onClick={() => setStatusFilter(statusFilter === 'unknown' ? 'all' : 'unknown')}
-              style={{
-                borderColor: STATUS_MAP[2].color,
-                color: statusFilter === 'unknown' ? 'white' : STATUS_MAP[2].color,
-                background: statusFilter === 'unknown' ? STATUS_MAP[2].color : 'white',
-                borderRadius: '8px'
-              }}
-            >
-              Unknown
-            </Button>
-          </div>
-        </div>
-
-        {/* YAML文件说明 */}
-        {!error && matrixData.length > 0 && (
-          <div style={{ 
-            marginBottom: '24px', 
-            padding: '16px', 
-            backgroundColor: '#eff6ff', 
-            border: '2px solid #bfdbfe', 
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{ 
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              marginBottom: '8px'
-            }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '6px',
-                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: '600'
-              }}>
-                📝
-              </div>
-              <div style={{ 
-                color: '#1e40af', 
-                fontWeight: '700', 
-                fontSize: '14px'
-              }}>
-                Data Source
-              </div>
-            </div>
-            <div style={{ 
-              color: '#374151', 
-              fontSize: '14px',
-              lineHeight: '1.5'
-            }}>
-              Data loaded from <code style={{ 
-                background: '#dbeafe',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                color: '#1e40af',
-                fontWeight: '600'
-              }}>/cluster.yml</code> and <code style={{ 
-                background: '#dbeafe',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                color: '#1e40af',
-                fontWeight: '600'
-              }}>/device_models/</code> via <code style={{ 
-                background: '#dbeafe',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                color: '#1e40af',
-                fontWeight: '600'
-              }}>Prometheus API</code>. 
-              Real-time monitoring data is fetched from your Prometheus server.
-            </div>
-          </div>
-        )}
 
         {/* 矩阵表格 */}
         <div style={{
