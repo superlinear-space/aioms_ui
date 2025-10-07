@@ -23,6 +23,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
   const [searchInstance, setSearchInstance] = useState<string>('');
   const [searchCheckFunction, setSearchCheckFunction] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'healthy' | 'failed' | 'unknown'>('all');
 
   // 加载数据
   const loadData = useCallback(async () => {
@@ -78,9 +79,28 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
 
   // 简化的矩阵显示（纵轴：instances；横轴：check functions）
   const renderMatrix = () => {
-    const displayInstances = allInstances.filter(instance =>
-      !searchInstance || instance.toLowerCase().includes(searchInstance.toLowerCase())
-    );
+    const instanceMatchesStatus = (instanceName: string): boolean => {
+      if (!selectedDomainData) return false;
+      const instanceData = (selectedDomainData.instances as any)[instanceName] || {};
+      const values: number[] = Object.values(instanceData).map((v: any) => v?.value).filter((v: any) => v !== undefined);
+      const hasHealthy = values.some(v => v === 0);
+      const hasFailed = values.some(v => v === 1);
+      const hasUnknown = values.some(v => v === 2);
+      if (statusFilter === 'healthy') {
+        return hasHealthy && !hasFailed && !hasUnknown; // 全部为healthy
+      }
+      if (statusFilter === 'failed') {
+        return hasFailed; // 至少一个failed
+      }
+      if (statusFilter === 'unknown') {
+        return hasUnknown && !hasFailed; // 全部为unknown
+      }
+      return true; // 'all'
+    };
+
+    const displayInstances = allInstances
+      .filter(instance => !searchInstance || instance.toLowerCase().includes(searchInstance.toLowerCase()))
+      .filter(instance => instanceMatchesStatus(instance));
     const displayCheckFunctions = allCheckFunctions.filter(cf =>
       !searchCheckFunction || cf.toLowerCase().includes(searchCheckFunction.toLowerCase())
     );
@@ -641,7 +661,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
           </div>
         )}
 
-        {/* 状态图例 */}
+        {/* 状态图例与过滤 */}
         <div style={{ 
           marginBottom: '24px', 
           padding: '20px', 
@@ -658,38 +678,42 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
             📊 Status Legend
           </h4>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {Object.entries(STATUS_MAP).map(([value, status]) => (
-              <div
-                key={value}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  backgroundColor: 'white',
-                  borderRadius: '8px',
-                  border: `2px solid ${status.color}`,
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <div
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '4px',
-                    backgroundColor: status.bgColor,
-                    border: `2px solid ${status.color}`,
-                  }}
-                />
-                <span style={{ 
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  {status.label}
-                </span>
-              </div>
-            ))}
+            <Button
+              type={statusFilter === 'healthy' ? 'primary' : 'default'}
+              onClick={() => setStatusFilter(statusFilter === 'healthy' ? 'all' : 'healthy')}
+              style={{
+                borderColor: STATUS_MAP[0].color,
+                color: statusFilter === 'healthy' ? 'white' : STATUS_MAP[0].color,
+                background: statusFilter === 'healthy' ? STATUS_MAP[0].color : 'white',
+                borderRadius: '8px'
+              }}
+            >
+              Healthy
+            </Button>
+            <Button
+              type={statusFilter === 'failed' ? 'primary' : 'default'}
+              onClick={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
+              style={{
+                borderColor: STATUS_MAP[1].color,
+                color: statusFilter === 'failed' ? 'white' : STATUS_MAP[1].color,
+                background: statusFilter === 'failed' ? STATUS_MAP[1].color : 'white',
+                borderRadius: '8px'
+              }}
+            >
+              Failed
+            </Button>
+            <Button
+              type={statusFilter === 'unknown' ? 'primary' : 'default'}
+              onClick={() => setStatusFilter(statusFilter === 'unknown' ? 'all' : 'unknown')}
+              style={{
+                borderColor: STATUS_MAP[2].color,
+                color: statusFilter === 'unknown' ? 'white' : STATUS_MAP[2].color,
+                background: statusFilter === 'unknown' ? STATUS_MAP[2].color : 'white',
+                borderRadius: '8px'
+              }}
+            >
+              Unknown
+            </Button>
           </div>
         </div>
 
