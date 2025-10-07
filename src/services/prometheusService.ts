@@ -92,29 +92,30 @@ export class PrometheusService {
   static expandInstances(instancesStr: string): string[] {
     const instances: string[] = [];
     const parts = instancesStr.split(',');
-    
+
     for (const part of parts) {
       const trimmed = part.trim();
-      
-      // 检查是否包含范围模式 [start-end]
-      const rangeMatch = trimmed.match(/^(.+)\[(\d+)-(\d+)\]$/);
+
+      // 检查是否包含范围模式 [start-end]，支持后缀（如: service-access-[1-4]-a）
+      // 兼容无后缀（如: storage[01-07]）与有后缀（如: service-access-[1-4]-a）两种情况
+      const rangeMatch = trimmed.match(/^(.*)\[(\d+)-(\d+)\](.*)$/);
       if (rangeMatch) {
-        const [, prefix, startStr, endStr] = rangeMatch;
+        const [, prefix, startStr, endStr, suffix] = rangeMatch;
         const start = parseInt(startStr, 10);
         const end = parseInt(endStr, 10);
-        
+
         for (let i = start; i <= end; i++) {
           // 处理零填充，如[01-07] -> 01, 02, ..., 07
-          const paddedI = startStr.length === endStr.length && startStr.startsWith('0') 
+          const paddedI = startStr.length === endStr.length && startStr.startsWith('0')
             ? i.toString().padStart(startStr.length, '0')
             : i.toString();
-          instances.push(`${prefix}${paddedI}`);
+          instances.push(`${prefix}${paddedI}${suffix}`);
         }
       } else {
         instances.push(trimmed);
       }
     }
-    
+
     return instances;
   }
 
@@ -123,7 +124,7 @@ export class PrometheusService {
    */
   static extractCheckFunctions(deviceModelConfig: DeviceModelCheck): string[] {
     const checkFunctions: string[] = [];
-    
+
     // 从各个模型中提取check function名称（忽略空格后的数据）
     const models = [
       deviceModelConfig.hardware_model || [],
@@ -131,7 +132,7 @@ export class PrometheusService {
       deviceModelConfig.service_model || [],
       deviceModelConfig.active_test_suite || []
     ];
-    
+
     for (const model of models) {
       for (const item of model) {
         // 提取空格前的部分作为check function名称
@@ -141,7 +142,7 @@ export class PrometheusService {
         }
       }
     }
-    
+
     return checkFunctions;
   }
 
@@ -152,7 +153,7 @@ export class PrometheusService {
   static async queryPrometheusInput(domain: string, checkFunction: string): Promise<PrometheusQueryResult> {
     const query = `CHECK_INPUT{domain="${domain}", cf="${checkFunction}"}`;
     const url = `${this.PROMETHEUS_BASE_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
-    
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -173,7 +174,7 @@ export class PrometheusService {
   static async queryPrometheus(domain: string, checkFunction: string): Promise<PrometheusQueryResult> {
     const query = `CHECK{domain="${domain}", cf="${checkFunction}"}`;
     const url = `${this.PROMETHEUS_BASE_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
-    
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -287,25 +288,25 @@ export class PrometheusService {
       }
 
       const matrixData: MatrixData[] = [];
-      
+
       // 4. 处理每个device model
       for (const device of clusterConfig.devices) {
         const domain = device.device_model;
         const instancesStr = device.instances;
-        
+
         // 展开instances
         const instances = this.expandInstances(instancesStr);
-        
+
         // 加载device model配置获取check functions
         const deviceModelConfig = await this.loadDeviceModelConfig(domain);
         const checkFunctions = this.extractCheckFunctions(deviceModelConfig);
-        
+
         // 初始化矩阵数据结构
         const domainData: MatrixData = {
           domain,
           instances: {}
         };
-        
+
         // 为每个instance初始化check function数据
         for (const instance of instances) {
           domainData.instances[instance] = {};
@@ -333,10 +334,10 @@ export class PrometheusService {
             }
           }
         }
-        
+
         matrixData.push(domainData);
       }
-      
+
       return matrixData;
     } catch (error) {
       console.error('Error building matrix data:', error);
