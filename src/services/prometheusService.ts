@@ -1,5 +1,6 @@
 import * as yaml from 'js-yaml';
 import { prometheusConfig } from '../config/prometheus';
+import { getClusterModelBase } from '../config/clusterModel';
 export interface ClusterDevice {
   device_model: string;
   instances: string;
@@ -47,9 +48,12 @@ export class PrometheusService {
    */
   static async loadClusterConfig(): Promise<ClusterConfig> {
     try {
-      const response = await fetch('/cluster.yml');
+      const base = getClusterModelBase();
+      // 若设置了 VITE_CLUSTER_MODEL_DIR，则从该目录读取；否则回退到 public 根
+      const url = base ? `${base}/cluster.yml` : '/cluster.yml';
+      const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Failed to load cluster.yml: ${response.status}`);
+        throw new Error(`Failed to load cluster.yml from ${url}: ${response.status}`);
       }
       const content = await response.text();
       const parsed = yaml.load(content) as ClusterConfig;
@@ -66,8 +70,10 @@ export class PrometheusService {
   static async loadDeviceModelConfig(deviceModel: string): Promise<DeviceModelCheck> {
     try {
       // 优先尝试 .yml，其次尝试 .yaml，兼容不同扩展名
-      const ymlUrl = `/device_models/${deviceModel}.yml`;
-      const yamlUrl = `/device_models/${deviceModel}.yaml`;
+      const base = getClusterModelBase();
+      const prefix = base ? `${base}/device_models` : '/device_models';
+      const ymlUrl = `${prefix}/${deviceModel}.yml`;
+      const yamlUrl = `${prefix}/${deviceModel}.yaml`;
 
       let response = await fetch(ymlUrl);
       if (!response.ok) {
