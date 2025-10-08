@@ -37,7 +37,7 @@ export interface PrometheusQueryResult {
 
 export interface MatrixData {
   domain: string;
-  instances: Record<string, Record<string, { value: number; inputValue?: string }>>;
+  instances: Record<string, Record<string, { value: number; inputValues?: number[] }>>;
 }
 
 export class PrometheusService {
@@ -152,48 +152,6 @@ export class PrometheusService {
     return checkFunctions;
   }
 
-
-  /**
-   * 查询Prometheus API获取CHECK_INPUT数据
-   */
-  static async queryPrometheusInput(domain: string, checkFunction: string): Promise<PrometheusQueryResult> {
-    const query = `CHECK_INPUT{domain="${domain}", cf="${checkFunction}"}`;
-    const url = `${this.PROMETHEUS_BASE_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Prometheus query failed: ${response.status}`);
-      }
-      const data = await response.json();
-      return data as PrometheusQueryResult;
-    } catch (error) {
-      console.error(`Error querying Prometheus INPUT for ${domain}/${checkFunction}:`, error);
-      throw error;
-    }
-  }
-
-
-  /**
-   * 查询Prometheus API获取监控数据
-   */
-  static async queryPrometheus(domain: string, checkFunction: string): Promise<PrometheusQueryResult> {
-    const query = `CHECK{domain="${domain}", cf="${checkFunction}"}`;
-    const url = `${this.PROMETHEUS_BASE_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Prometheus query failed: ${response.status}`);
-      }
-      const data = await response.json();
-      return data as PrometheusQueryResult;
-    } catch (error) {
-      console.error(`Error querying Prometheus for ${domain}/${checkFunction}:`, error);
-      throw error;
-    }
-  }
-
   /**
    * 一次性查询所有CHECK数据（不带过滤标签）
    */
@@ -268,7 +226,7 @@ export class PrometheusService {
         }
       }
 
-      const inputsMap: Record<string, Record<string, Record<string, string>>> = {};
+      const inputsMap: Record<string, Record<string, Record<string, number[]>>> = {};
       if (allInputs?.status === 'success' && allInputs.data?.result) {
         for (const item of allInputs.data.result) {
           const domain = item.metric.domain;
@@ -276,20 +234,12 @@ export class PrometheusService {
           const cf = item.metric.cf;
           const raw = item.value[1];
           if (!domain || !hostname || !cf) continue;
-          let displayValue = raw as unknown as string;
-          try {
-            const parsed = JSON.parse(String(raw));
-            if (Array.isArray(parsed)) {
-              displayValue = parsed.join(', ');
-            } else {
-              displayValue = String(parsed);
-            }
-          } catch {
-            displayValue = String(raw);
-          }
+          const intValue = parseInt(raw, 10);
+          if (Number.isNaN(intValue)) continue;
           inputsMap[domain] = inputsMap[domain] || {};
           inputsMap[domain][hostname] = inputsMap[domain][hostname] || {};
-          inputsMap[domain][hostname][cf] = displayValue;
+          inputsMap[domain][hostname][cf] = inputsMap[domain][hostname][cf] || [];
+          inputsMap[domain][hostname][cf].push(intValue);
         }
       }
 
@@ -317,7 +267,7 @@ export class PrometheusService {
         for (const instance of instances) {
           domainData.instances[instance] = {};
           for (const checkFunction of checkFunctions) {
-            domainData.instances[instance][checkFunction] = { value: 2, inputValue: '' }; // 默认为unknown
+            domainData.instances[instance][checkFunction] = { value: 2, inputValues: [] }; // 默认为unknown
           }
         }
 
@@ -334,9 +284,9 @@ export class PrometheusService {
         }
         for (const [hostname, cfToInput] of Object.entries(domainInputs)) {
           if (!domainData.instances[hostname]) continue;
-          for (const [cf, inputValue] of Object.entries(cfToInput)) {
+          for (const [cf, inputValues] of Object.entries(cfToInput)) {
             if (domainData.instances[hostname][cf] !== undefined) {
-              domainData.instances[hostname][cf].inputValue = inputValue as string;
+              domainData.instances[hostname][cf].inputValues = inputValues as number[];
             }
           }
         }

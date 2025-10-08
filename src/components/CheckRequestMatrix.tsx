@@ -269,7 +269,8 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                     }
 
                     const status = STATUS_MAP[checkRequest.value as keyof typeof STATUS_MAP];
-                    const inputValue = checkRequest.inputValue || '';
+                    const inputValues: number[] = checkRequest.inputValues || [];
+                    const tooltipText = `${cf}: ${status.label}${inputValues.length ? ` | Values: [${inputValues.join(', ')}]` : ''}`;
                     
                     return (
                       <div key={`${instance}-${cf}`} style={{
@@ -281,7 +282,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}>
-                        <Tooltip title={`${cf}: ${status.label}${inputValue ? ` | Value: ${inputValue}` : ''}`} placement="top">
+                        <Tooltip title={tooltipText} placement="top">
                           <div
                             style={{
                               minWidth: '32px',
@@ -311,7 +312,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                             <div style={{ fontSize: '14px' }}>
                               {checkRequest.value === 0 ? '✓' : checkRequest.value === 1 ? '✗' : checkRequest.value === 2 ? '?' : ''}
                             </div>
-                            {inputValue && (
+                            {inputValues.length > 0 && (
                               <div style={{ 
                                 fontSize: '9px', 
                                 lineHeight: '1',
@@ -320,7 +321,7 @@ const CheckRequestMatrix: React.FC<CheckRequestMatrixProps> = ({ className }) =>
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap'
                               }}>
-                                {inputValue}
+                                {`[${inputValues.join(', ')}]`}
                               </div>
                             )}
                           </div>
