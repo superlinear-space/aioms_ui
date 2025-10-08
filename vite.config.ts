@@ -9,6 +9,12 @@ export default defineConfig({
   },
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' }
+  },
+  server: {
+    fs: {
+      // 关闭 Vite 的文件系统访问限制，允许读取任意外部文件
+      strict: false
+    }
   }
 })
 
