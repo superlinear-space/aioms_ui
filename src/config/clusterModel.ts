@@ -1,24 +1,19 @@
 // src/config/clusterModel.ts
 
 /**
- * 计算用于前端 fetch 的集群模型目录基路径
- * - 读取 VITE_CLUSTER_MODEL_DIR
- * - 开发环境 (Vite dev server) 绝对路径使用 /@fs 直访
- * - 未配置时返回空字符串，表示回退到 public 根目录
+ * 获取集群模型API的基础URL
  */
-export const getClusterModelBase = (): string => {
-  const envDir = (import.meta as any).env?.VITE_CLUSTER_MODEL_DIR as string | undefined;
-  const isDev = !!(import.meta as any).env?.DEV;
-
-  if (!envDir || envDir.trim() === '') return '';
-
-  // 绝对路径
-  if (envDir.startsWith('/')) {
-    return isDev ? `/@fs${envDir}` : envDir;
-  }
-
-  // 相对路径或 URL 路径前缀，直接返回（相对当前站点）
-  return envDir;
+export const getClusterModelApiBase = (): string => {
+  const apiBase = import.meta.env.VITE_CLUSTER_MODEL_API as string | undefined;
+  const defaultUrl = 'http://localhost:3001';
+  return apiBase || defaultUrl;
 };
 
-
+/**
+ * 获取完整的API端点
+ */
+export const clusterModelApi = {
+  cluster: () => `${getClusterModelApiBase()}/api/cluster`,
+  deviceModel: (modelName: string) => `${getClusterModelApiBase()}/api/device-models/${modelName}`,
+  health: () => `${getClusterModelApiBase()}/health`,
+};
