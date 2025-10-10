@@ -110,7 +110,7 @@ class CustomQueryViewSet(viewsets.ViewSet):
 
     def list(self, request, *args, **kwargs):
         query = request.query_params.get('query', None)
-        type = request.query_params.get('type', 'table').lower()
+        type = request.query_params.get('type', 'table').lower() # default is table
         period = int(request.query_params.get('period', 1))
         step = int(request.query_params.get('step', 60))
         name = request.query_params.get('name', 'instance')

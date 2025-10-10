@@ -167,14 +167,20 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
   const [modelDir, setModelDir] = useState<string>(() => {
     // Try to get from URL params first, then localStorage, then default
     const urlDir = searchParams.get('clusterDir');
-    const savedDir = localStorage.getItem('clusterModelDir');
-    const dirPath = urlDir || savedDir || "./";
+    // Ignore localStorage for now and force temp1
+    const dirPath = urlDir || "./temp1";
+    
+    console.log('Initializing modelDir with:', dirPath);
+    console.log('Current window.location:', window.location.href);
     
     // Convert to absolute path
     if (dirPath.startsWith('./') || dirPath.startsWith('../') || !dirPath.startsWith('/')) {
-      // For relative paths, we'll use the current working directory as base
-      // In a browser environment, we'll use the public directory as the base
-      return new URL(dirPath, window.location.origin).pathname;
+      // For relative paths, resolve relative to the root of the application
+      // Use the base URL without the current path
+      const baseUrl = new URL('/', window.location.origin);
+      const resolvedUrl = new URL(dirPath, baseUrl);
+      console.log('Resolved URL:', resolvedUrl.pathname);
+      return resolvedUrl.pathname;
     }
     return dirPath;
   });
@@ -241,7 +247,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
   const parseDeviceModelContent = (content: string) => {
     try {
       const parsed = yaml.load(content) as any;
-      console.log('Parsed device model YAML:', parsed);
+      console.log('Parsed device model ', content, '\nYAML:', parsed);
       return parsed;
     } catch (error) {
       console.error('Error parsing device model YAML:', error);
@@ -507,22 +513,22 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
   };
 
   // Function to load device model, network, or tenant configuration
-  const loadDeviceModelConfig = async (name: string, type: 'device' | 'network' | 'tenant' = 'device') => {
+  async function loadDomainConfig(name: string, type: 'device' | 'network' | 'tenant' = 'device') {
     if (nameConfigs[name] || loadingConfigs[name]) {
       return; // Already loaded or loading
     }
 
     setLoadingConfigs(prev => ({ ...prev, [name]: true }));
-    
+
     try {
-      const configPath = type === 'device' 
+      const configPath = type === 'device'
         ? `${modelDir}/device_models/${name}.yml`
         : type === 'network'
-        ? `${modelDir}/networks/${name}.yml`
-        : `${modelDir}/tenants/${name}.yml`;
+          ? `${modelDir}/networks/${name}.yml`
+          : `${modelDir}/tenants/${name}.yml`;
       console.log('Loading config from:', configPath);
       const response = await fetch(configPath);
-      
+
       if (response.ok) {
         const content = await response.text();
         const config = parseDeviceModelContent(content);
@@ -538,7 +544,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
     } finally {
       setLoadingConfigs(prev => ({ ...prev, [name]: false }));
     }
-  };
+  }
 
   // Function to save device model, network, or tenant configuration
   const saveDeviceModelConfig = async (name: string, type: 'device' | 'network' | 'tenant' = 'device') => {
@@ -671,7 +677,7 @@ const ClusterYmlEditor: React.FC<ClusterYmlEditorProps> = ({
             {!nameConfigs[name] && (
               <Button
                 type="default"
-                onClick={() => loadDeviceModelConfig(name, type)}
+                onClick={() => loadDomainConfig(name, type)}
                 loading={loadingConfigs[name]}
                 size="small"
               >
